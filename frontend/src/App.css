@@ -1,0 +1,123 @@
+body {
+  background: linear-gradient(120deg, #89f7fe, #66a6ff);
+  font-family: "Segoe UI", Tahoma, sans-serif;
+}
+
+/* Main container */
+.container {
+  max-width: 750px;
+  margin: 40px auto;
+  background: #ffffff;
+  padding: 25px;
+  border-radius: 12px;
+  box-shadow: 0px 10px 25px rgba(0, 0, 0, 0.2);
+}
+
+/* Header */
+.header {
+  background: #4f46e5;
+  color: white;
+  padding: 15px;
+  text-align: center;
+  border-radius: 8px;
+  margin-bottom: 20px;
+}
+
+/* Footer */
+.footer {
+  margin-top: 30px;
+  background: #4f46e5;
+  color: white;
+  padding: 10px;
+  text-align: center;
+  border-radius: 8px;
+}
+
+/* Inputs */
+input,
+select {
+  width: 30%;
+  padding: 10px;
+  margin: 6px;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+}
+
+/* Buttons */
+button {
+  padding: 10px 15px;
+  background: #4f46e5;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+button:hover {
+  background: #3730a3;
+}
+
+/* Expense list */
+ul {
+  list-style: none;
+  padding: 0;
+}
+
+.expense-item {
+  background: #f1f5f9;
+  padding: 12px;
+  margin: 8px 0;
+  border-radius: 6px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+/* Delete button */
+.delete-btn {
+  background: #ef4444;
+}
+
+.delete-btn:hover {
+  background: #b91c1c;
+}
+
+/* Fade in animation */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.container {
+  animation: fadeIn 0.8s ease-in-out;
+}
+
+/* Hover animation on expense item */
+.expense-item {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.expense-item:hover {
+  transform: scale(1.02);
+  box-shadow: 0px 4px 10px rgba(0,0,0,0.2);
+}
+
+/* Button smooth effect */
+button {
+  transition: background 0.3s ease, transform 0.2s ease;
+}
+
+button:hover {
+  transform: translateY(-2px);
+}
+
+canvas {
+  max-width: 500px;
+  margin: 20px auto;
+}
