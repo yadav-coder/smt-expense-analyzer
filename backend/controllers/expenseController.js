@@ -123,10 +123,11 @@ exports.getPrediction = async (req, res) => {
     const axios = require("axios");
     const expenses = req.body.expenses;
 
-    const response = await axios.post(
-      "http://127.0.0.1:5001/predict",
-      { expenses }
-    );
+const response = await axios.post(
+  "https://smt-expense-analyzer-ml.onrender.com/predict",
+  { expenses }
+);
+
 
     res.json(response.data);
   } catch (error) {
