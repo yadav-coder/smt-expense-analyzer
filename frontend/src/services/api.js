@@ -1,13 +1,12 @@
-const API_URL = "http://localhost:5000/api/expenses";
-const CATEGORY_URL = "http://localhost:5000/api/categories";
+const BASE_URL = "https://smt-expense-analyzer.onrender.com/api";
 
 export const getExpenses = async () => {
-  const res = await fetch(API_URL);
+  const res = await fetch(`${BASE_URL}/expenses`);
   return res.json();
 };
 
 export const addExpense = async (expense) => {
-  const res = await fetch(API_URL, {
+  const res = await fetch(`${BASE_URL}/expenses`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -18,7 +17,7 @@ export const addExpense = async (expense) => {
 };
 
 export const getPrediction = async (expenses) => {
-  const res = await fetch("http://localhost:5000/api/expenses/predict", {
+  const res = await fetch(`${BASE_URL}/expenses/predict`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ expenses }),
@@ -27,30 +26,27 @@ export const getPrediction = async (expenses) => {
 };
 
 export const deleteExpense = async (id) => {
-  await fetch(`http://localhost:5000/api/expenses/${id}`, {
+  await fetch(`${BASE_URL}/expenses/${id}`, {
     method: "DELETE",
   });
 };
 
 export const updateExpense = async (id, expense) => {
-  const res = await fetch(
-    `http://localhost:5000/api/expenses/${id}`,
-    {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(expense),
-    }
-  );
+  const res = await fetch(`${BASE_URL}/expenses/${id}`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(expense),
+  });
   return res.json();
 };
 
 export const getCategories = async () => {
-  const res = await fetch(CATEGORY_URL);
+  const res = await fetch(`${BASE_URL}/categories`);
   return res.json();
 };
 
 export const renameCategory = async (oldName, newName) => {
-  const res = await fetch(`${CATEGORY_URL}/rename`, {
+  const res = await fetch(`${BASE_URL}/categories/rename`, {
     method: "PUT",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ oldName, newName }),
@@ -60,9 +56,8 @@ export const renameCategory = async (oldName, newName) => {
 
 export const deleteCategory = async (name) => {
   const res = await fetch(
-    `${CATEGORY_URL}/${encodeURIComponent(name)}`,
+    `${BASE_URL}/categories/${encodeURIComponent(name)}`,
     { method: "DELETE" }
   );
   return res.json();
 };
-
