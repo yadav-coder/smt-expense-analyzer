@@ -34,7 +34,14 @@ export const getPrediction = async (expenses) => {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ expenses }),
   });
-  return res.json();
+
+  const data = await res.json();
+
+  if (!res.ok) {
+    throw new Error(data?.message || "Prediction request failed");
+  }
+
+  return data;
 };
 
 export const deleteExpense = async (id) => {

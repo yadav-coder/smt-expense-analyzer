@@ -20,6 +20,39 @@ import {
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
+function calculateLocalPrediction(expenses) {
+  const amounts = expenses
+    .map((expense) => Number(expense.amount))
+    .filter((amount) => Number.isFinite(amount));
+
+  if (amounts.length === 0) {
+    return 0;
+  }
+
+  if (amounts.length === 1) {
+    return amounts[0];
+  }
+
+  const points = amounts.map((amount, index) => ({ x: index, y: amount }));
+  const count = points.length;
+  const sumX = points.reduce((sum, point) => sum + point.x, 0);
+  const sumY = points.reduce((sum, point) => sum + point.y, 0);
+  const sumXY = points.reduce((sum, point) => sum + point.x * point.y, 0);
+  const sumXX = points.reduce((sum, point) => sum + point.x * point.x, 0);
+
+  const denominator = count * sumXX - sumX * sumX;
+
+  if (denominator === 0) {
+    return Math.round((sumY / count) * 100) / 100;
+  }
+
+  const slope = (count * sumXY - sumX * sumY) / denominator;
+  const intercept = (sumY - slope * sumX) / count;
+  const nextValue = slope * count + intercept;
+
+  return Math.max(0, Math.round(nextValue * 100) / 100);
+}
+
 function App() {
   const [loading, setLoading] = useState(false);
   const [expenses, setExpenses] = useState([]);
@@ -36,7 +69,7 @@ function App() {
   useEffect(() => {
     const refreshPrediction = async () => {
       if (!expenses || expenses.length < 2) {
-        setPrediction(0);
+        setPrediction(calculateLocalPrediction(expenses || []));
         setPredictionLoading(false);
         return;
       }
@@ -44,9 +77,15 @@ function App() {
       try {
         setPredictionLoading(true);
         const result = await getPrediction(expenses);
-        setPrediction(result?.prediction || 0);
+        const nextPrediction = Number(result?.prediction);
+
+        if (!Number.isFinite(nextPrediction)) {
+          throw new Error("Invalid prediction value");
+        }
+
+        setPrediction(Math.max(0, nextPrediction));
       } catch (error) {
-        setPrediction(0);
+        setPrediction(calculateLocalPrediction(expenses));
       } finally {
         setPredictionLoading(false);
       }
