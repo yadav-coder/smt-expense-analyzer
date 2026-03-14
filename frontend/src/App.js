@@ -25,12 +25,11 @@ function App() {
   const [expenses, setExpenses] = useState([]);
   const [prediction, setPrediction] = useState(0);
   const [predictionLoading, setPredictionLoading] = useState(false);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
-  // Modal States
   const [showModal, setShowModal] = useState(false);
   const [pendingExpense, setPendingExpense] = useState(null);
 
-  // Budget
   const [budget, setBudget] = useState("");
   const lastAlert = useRef("");
 
@@ -153,60 +152,80 @@ function App() {
     loadExpenses();
   }, []);
 
+  useEffect(() => {
+    document.body.style.overflow = isSidebarOpen ? "hidden" : "";
+
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [isSidebarOpen]);
+
   return (
     <div className="container">
       <ToastContainer />
 
-      <Header />
-
-      <AddExpense onAddExpense={addExpenseHandler} />
-
-      <h3>Set Monthly Budget</h3>
-
-      <input
-        type="number"
-        placeholder="Enter Budget"
-        value={budget}
-        onChange={(e) => {
-          setBudget(Number(e.target.value));
-          lastAlert.current = "";
-        }}
+      <Header
+        isSidebarOpen={isSidebarOpen}
+        onMenuToggle={() => setIsSidebarOpen((prev) => !prev)}
+        onMenuClose={() => setIsSidebarOpen(false)}
       />
 
-      <h3>Expense List</h3>
+      <section id="add-expense">
+        <AddExpense onAddExpense={addExpenseHandler} />
+      </section>
 
-      {loading && <p>Loading...</p>}
+      <section id="budget">
+        <h3>Set Monthly Budget</h3>
 
-      <ul>
-        {expenses.map((exp) => (
-          <li key={exp._id} className="expense-item">
-            <span>
-              {exp.title} - Rs.{exp.amount} ({exp.category})
-            </span>
+        <input
+          type="number"
+          placeholder="Enter Budget"
+          value={budget}
+          onChange={(e) => {
+            setBudget(Number(e.target.value));
+            lastAlert.current = "";
+          }}
+        />
+      </section>
 
-            <div>
-              <button onClick={() => editExpenseHandler(exp)}>
-                Edit
-              </button>
+      <section id="expense-list">
+        <h3>Expense List</h3>
 
-              <button
-                className="delete-btn"
-                onClick={() => deleteExpenseHandler(exp._id, exp.title)}
-              >
-                Delete
-              </button>
-            </div>
-          </li>
-        ))}
-      </ul>
+        {loading && <p>Loading...</p>}
 
-      <h3>Total Expense: Rs.{totalExpense}</h3>
+        <ul>
+          {expenses.map((exp) => (
+            <li key={exp._id} className="expense-item">
+              <span>
+                {exp.title} - Rs.{exp.amount} ({exp.category})
+              </span>
 
-      <h3>
-        Predicted Next Month Expense: {predictionLoading ? "Calculating..." : `Rs.${prediction}`}
-      </h3>
+              <div>
+                <button onClick={() => editExpenseHandler(exp)}>
+                  Edit
+                </button>
 
-      <Charts expenses={expenses} />
+                <button
+                  className="delete-btn"
+                  onClick={() => deleteExpenseHandler(exp._id, exp.title)}
+                >
+                  Delete
+                </button>
+              </div>
+            </li>
+          ))}
+        </ul>
+
+        <h3>Total Expense: Rs.{totalExpense}</h3>
+
+        <h3>
+          Predicted Next Month Expense: {predictionLoading ? "Calculating..." : `Rs.${prediction}`}
+        </h3>
+      </section>
+
+      <section id="charts">
+        <Charts expenses={expenses} />
+      </section>
 
       {showModal && (
         <CategoryModal
