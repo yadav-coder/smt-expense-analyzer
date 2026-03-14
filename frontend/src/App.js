@@ -21,39 +21,40 @@ import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
 function App() {
-
   const [loading, setLoading] = useState(false);
   const [expenses, setExpenses] = useState([]);
   const [prediction, setPrediction] = useState(0);
+  const [predictionLoading, setPredictionLoading] = useState(false);
 
-  useEffect(() => {
-  const refreshPrediction = async () => {
-    if (!expenses || expenses.length < 2) {
-      setPrediction(0);
-      return;
-    }
-
-    try {
-      const result = await getPrediction(expenses);
-      setPrediction(result?.prediction || 0);
-    } catch (error) {
-      setPrediction(0);
-    }
-  };
-
-  refreshPrediction();
-}, [expenses]);
-
-
-  // 🔹 Modal States
+  // Modal States
   const [showModal, setShowModal] = useState(false);
   const [pendingExpense, setPendingExpense] = useState(null);
 
-  // 🔹 Budget
+  // Budget
   const [budget, setBudget] = useState("");
   const lastAlert = useRef("");
 
-  // ============================
+  useEffect(() => {
+    const refreshPrediction = async () => {
+      if (!expenses || expenses.length < 2) {
+        setPrediction(0);
+        setPredictionLoading(false);
+        return;
+      }
+
+      try {
+        setPredictionLoading(true);
+        const result = await getPrediction(expenses);
+        setPrediction(result?.prediction || 0);
+      } catch (error) {
+        setPrediction(0);
+      } finally {
+        setPredictionLoading(false);
+      }
+    };
+
+    refreshPrediction();
+  }, [expenses]);
 
   const loadExpenses = async () => {
     setLoading(true);
@@ -64,10 +65,7 @@ function App() {
     setLoading(false);
   };
 
-  // ============================
-
   const addExpenseHandler = async (expense) => {
-
     const result = await addExpense(expense);
 
     if (result.needCategory) {
@@ -81,7 +79,6 @@ function App() {
   };
 
   const saveCategoryHandler = async (category) => {
-
     if (!pendingExpense) return;
 
     await addExpense({
@@ -118,25 +115,16 @@ function App() {
     loadExpenses();
   };
 
-  // ============================
+  const totalExpense = expenses.reduce((sum, e) => sum + Number(e.amount), 0);
 
-  const totalExpense = expenses.reduce(
-    (sum, e) => sum + Number(e.amount),
-    0
-  );
-
-  // 🔹 Budget Alert Logic
   useEffect(() => {
     if (!budget || budget <= 0 || totalExpense === 0) {
       lastAlert.current = "";
       return;
     }
 
-    const percent = Number(
-      ((totalExpense / Number(budget)) * 100).toFixed(1)
-    );
-
-    const message = `₹${totalExpense} / ₹${budget} used (${percent}%)`;
+    const percent = Number(((totalExpense / Number(budget)) * 100).toFixed(1));
+    const message = `Rs.${totalExpense} / Rs.${budget} used (${percent}%)`;
 
     if (percent < 50) {
       lastAlert.current = "";
@@ -144,39 +132,29 @@ function App() {
     }
 
     if (percent >= 100 && lastAlert.current !== "100") {
-      toast.error(`🚨 Budget Exceeded! ${message}`);
+      toast.error(`Budget Exceeded! ${message}`);
       lastAlert.current = "100";
-    }
-    else if (percent >= 95 && lastAlert.current !== "95") {
-      toast.error(`🔴 Critical Level! ${message}`);
+    } else if (percent >= 95 && lastAlert.current !== "95") {
+      toast.error(`Critical Level! ${message}`);
       lastAlert.current = "95";
-    }
-    else if (percent >= 90 && lastAlert.current !== "90") {
-      toast.warn(`🟠 High Usage! ${message}`);
+    } else if (percent >= 90 && lastAlert.current !== "90") {
+      toast.warn(`High Usage! ${message}`);
       lastAlert.current = "90";
-    }
-    else if (percent >= 70 && lastAlert.current !== "70") {
-      toast.info(`🟡 Moderate Usage! ${message}`);
+    } else if (percent >= 70 && lastAlert.current !== "70") {
+      toast.info(`Moderate Usage! ${message}`);
       lastAlert.current = "70";
-    }
-    else if (percent >= 50 && lastAlert.current !== "50") {
-      toast.info(`🟢 Half Budget Used! ${message}`);
+    } else if (percent >= 50 && lastAlert.current !== "50") {
+      toast.info(`Half Budget Used! ${message}`);
       lastAlert.current = "50";
     }
-
   }, [totalExpense, budget]);
-
-  // ============================
 
   useEffect(() => {
     loadExpenses();
   }, []);
 
-  // ============================
-
   return (
     <div className="container">
-
       <ToastContainer />
 
       <Header />
@@ -202,9 +180,8 @@ function App() {
       <ul>
         {expenses.map((exp) => (
           <li key={exp._id} className="expense-item">
-
             <span>
-              {exp.title} - ₹{exp.amount} ({exp.category})
+              {exp.title} - Rs.{exp.amount} ({exp.category})
             </span>
 
             <div>
@@ -214,25 +191,23 @@ function App() {
 
               <button
                 className="delete-btn"
-                onClick={() =>
-                  deleteExpenseHandler(exp._id, exp.title)
-                }
+                onClick={() => deleteExpenseHandler(exp._id, exp.title)}
               >
                 Delete
               </button>
             </div>
-
           </li>
         ))}
       </ul>
 
-      <h3>Total Expense: ₹{totalExpense}</h3>
+      <h3>Total Expense: Rs.{totalExpense}</h3>
 
-      <h3>Predicted Next Month Expense: ₹{prediction}</h3>
+      <h3>
+        Predicted Next Month Expense: {predictionLoading ? "Calculating..." : `Rs.${prediction}`}
+      </h3>
 
       <Charts expenses={expenses} />
 
-      {/* ✅ CATEGORY MODAL */}
       {showModal && (
         <CategoryModal
           title={pendingExpense.title}
@@ -240,14 +215,12 @@ function App() {
           onClose={() => setShowModal(false)}
         />
       )}
+
       <CategoryManager />
 
-
       <Footer />
-
     </div>
   );
 }
 
 export default App;
-

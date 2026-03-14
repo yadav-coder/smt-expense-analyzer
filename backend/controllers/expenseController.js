@@ -171,7 +171,7 @@ exports.getPrediction = async (req, res) => {
     const response = await axios.post(
       "https://smt-expense-analyzer-ml.onrender.com/predict",
       { expenses },
-      { timeout: 60000 }
+      { timeout: 180000 }
     );
 
     res.json(response.data);
