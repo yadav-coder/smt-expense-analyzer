@@ -16,6 +16,18 @@ export const addExpense = async (expense) => {
   return res.json();
 };
 
+export const predictExpenses = async (expenses) => {
+  const res = await fetch(`${BASE_URL}/expenses/predict`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({ expenses })
+  });
+
+  return res.json();
+};
+
 export const getPrediction = async (expenses) => {
   const res = await fetch(`${BASE_URL}/expenses/predict`, {
     method: "POST",

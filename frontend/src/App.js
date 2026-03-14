@@ -26,6 +26,25 @@ function App() {
   const [expenses, setExpenses] = useState([]);
   const [prediction, setPrediction] = useState(0);
 
+  useEffect(() => {
+  const refreshPrediction = async () => {
+    if (!expenses || expenses.length < 2) {
+      setPrediction(0);
+      return;
+    }
+
+    try {
+      const result = await getPrediction(expenses);
+      setPrediction(result?.prediction || 0);
+    } catch (error) {
+      setPrediction(0);
+    }
+  };
+
+  refreshPrediction();
+}, [expenses]);
+
+
   // 🔹 Modal States
   const [showModal, setShowModal] = useState(false);
   const [pendingExpense, setPendingExpense] = useState(null);
@@ -41,9 +60,6 @@ function App() {
 
     const data = await getExpenses();
     setExpenses(data);
-
-    const result = await getPrediction(data);
-    setPrediction(result?.prediction || 0);
 
     setLoading(false);
   };
@@ -234,3 +250,4 @@ function App() {
 }
 
 export default App;
+
