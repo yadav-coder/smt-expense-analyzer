@@ -1,11 +1,11 @@
 import {
-  ArcElement,
-  BarElement,
-  CategoryScale,
-  Chart as ChartJS,
-  Legend,
-  LinearScale,
-  Tooltip,
+    ArcElement,
+    BarElement,
+    CategoryScale,
+    Chart as ChartJS,
+    Legend,
+    LinearScale,
+    Tooltip,
 } from "chart.js";
 
 import { Bar, Pie } from "react-chartjs-2";
@@ -20,18 +20,36 @@ ChartJS.register(
 );
 
 function Charts({ expenses }) {
+  const categoryTotals = expenses.reduce((acc, expense) => {
+    const category = expense.category || "Uncategorized";
+    const amount = Number(expense.amount);
+    if (!Number.isFinite(amount)) return acc;
+    acc[category] = (acc[category] || 0) + amount;
+    return acc;
+  }, {});
 
-  // Prepare data
-  const labels = expenses.map((e) => e.title);
-  const amounts = expenses.map((e) => Number(e.amount));
+  const labels = Object.keys(categoryTotals);
+  const amounts = labels.map((label) => categoryTotals[label]);
+
+  const colors = [
+    "#6366f1",
+    "#22c55e",
+    "#f97316",
+    "#ef4444",
+    "#14b8a6",
+    "#a855f7",
+    "#0ea5e9",
+    "#fb7185",
+    "#facc15",
+  ];
 
   const barData = {
     labels,
     datasets: [
       {
-        label: "Expenses",
+        label: "Category Spend",
         data: amounts,
-        backgroundColor: "#4f46e5",
+        backgroundColor: colors,
       },
     ],
   };
@@ -41,31 +59,38 @@ function Charts({ expenses }) {
     datasets: [
       {
         data: amounts,
-        backgroundColor: [
-          "#6366f1",
-          "#22c55e",
-          "#f97316",
-          "#ef4444",
-          "#14b8a6",
-          "#a855f7",
-        ],
+        backgroundColor: colors,
       },
     ],
   };
 
   return (
-    <div>
-
-      <h3>Bar Chart</h3>
-      <div style={{ width: "400px", margin: "auto" }}>
-        <Bar data={barData} />
+    <div className="charts-panel">
+      <div className="chart-block">
+        <h3>Category Spending</h3>
+        <div className="chart-card">
+          <Pie data={pieData} />
+        </div>
       </div>
 
-      <h3>Pie Chart</h3>
-      <div style={{ width: "350px", margin: "auto" }}>
-        <Pie data={pieData} />
+      <div className="chart-block">
+        <h3>Expense Trend</h3>
+        <div className="chart-card">
+          <Bar data={barData} />
+        </div>
       </div>
 
+      <div className="category-legend">
+        {labels.map((label, index) => (
+          <div className="legend-item" key={label}>
+            <span
+              className="legend-color"
+              style={{ backgroundColor: colors[index % colors.length] }}
+            />
+            <span>{label}: Rs.{categoryTotals[label]}</span>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }

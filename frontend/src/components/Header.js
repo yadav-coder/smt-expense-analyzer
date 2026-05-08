@@ -1,5 +1,6 @@
 function Header({ isSidebarOpen, onMenuToggle, onMenuClose }) {
   const menuItems = [
+    { href: "#dashboard", label: "Dashboard", icon: "dashboard" },
     { href: "#add-expense", label: "Add Expense", icon: "plus" },
     { href: "#budget", label: "Budget", icon: "wallet" },
     { href: "#expense-list", label: "Expenses", icon: "list" },

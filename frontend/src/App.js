@@ -53,6 +53,17 @@ function calculateLocalPrediction(expenses) {
   return Math.max(0, Math.round(nextValue * 100) / 100);
 }
 
+function getCategoryTotals(expenses) {
+  return expenses.reduce((acc, expense) => {
+    const category = expense.category || "Uncategorized";
+    const amount = Number(expense.amount);
+    if (!Number.isFinite(amount)) return acc;
+
+    acc[category] = (acc[category] || 0) + amount;
+    return acc;
+  }, {});
+}
+
 function App() {
   const [loading, setLoading] = useState(false);
   const [expenses, setExpenses] = useState([]);
@@ -64,7 +75,47 @@ function App() {
   const [pendingExpense, setPendingExpense] = useState(null);
 
   const [budget, setBudget] = useState("");
+  const [theme, setTheme] = useState("light");
   const lastAlert = useRef("");
+
+  const totalExpense = expenses.reduce((sum, e) => sum + Number(e.amount), 0);
+  const categoryTotals = getCategoryTotals(expenses);
+  const categoryCount = Object.keys(categoryTotals).length;
+  const budgetRemaining = budget ? Math.max(0, Number(budget) - totalExpense) : 0;
+  const budgetUsedPercent = budget ? Number(((totalExpense / Number(budget)) * 100).toFixed(1)) : 0;
+  const latestTransactions = [...expenses].slice(-5).reverse();
+
+  const topCategories = Object.entries(categoryTotals)
+    .sort(([, a], [, b]) => b - a)
+    .slice(0, 4)
+    .map(([category, amount]) => ({ category, amount }));
+
+  const categoryGradient = (category, index) => {
+    const map = {
+      Rent: ["#0ea5e9", "#38bdf8"],
+      Transport: ["#a855f7", "#c084fc"],
+      Health: ["#22c55e", "#4ade80"],
+      Groceries: ["#f97316", "#fbbf24"],
+    };
+
+    const fallback = [
+      ["#6366f1", "#8b5cf6"],
+      ["#22c55e", "#14b8a6"],
+      ["#f43f5e", "#fb7185"],
+      ["#f59e0b", "#fbbf24"],
+    ];
+
+    const colors = map[category] || fallback[index % fallback.length];
+    return `linear-gradient(135deg, ${colors[0]}, ${colors[1]})`;
+  };
+
+  useEffect(() => {
+    document.body.classList.toggle("theme-dark", theme === "dark");
+  }, [theme]);
+
+  const toggleTheme = () => {
+    setTheme((prev) => (prev === "light" ? "dark" : "light"));
+  };
 
   useEffect(() => {
     const refreshPrediction = async () => {
@@ -96,46 +147,60 @@ function App() {
 
   const loadExpenses = async () => {
     setLoading(true);
-
-    const data = await getExpenses();
-    setExpenses(data);
-
-    setLoading(false);
+    try {
+      const data = await getExpenses();
+      setExpenses(data || []);
+    } catch (error) {
+      toast.error("Failed to load expenses");
+    } finally {
+      setLoading(false);
+    }
   };
 
   const addExpenseHandler = async (expense) => {
-    const result = await addExpense(expense);
+    try {
+      const result = await addExpense(expense);
 
-    if (result.needCategory) {
-      setPendingExpense(result);
-      setShowModal(true);
-      return;
+      if (result?.needCategory) {
+        setPendingExpense(result);
+        setShowModal(true);
+        return;
+      }
+
+      toast.success("Expense Added");
+      loadExpenses();
+    } catch (error) {
+      toast.error("Failed to add expense");
     }
-
-    toast.success("Expense Added");
-    loadExpenses();
   };
 
   const saveCategoryHandler = async (category) => {
     if (!pendingExpense) return;
 
-    await addExpense({
-      title: pendingExpense.title,
-      amount: pendingExpense.amount,
-      category
-    });
+    try {
+      await addExpense({
+        title: pendingExpense.title,
+        amount: pendingExpense.amount,
+        category,
+      });
 
-    setShowModal(false);
-    setPendingExpense(null);
-
-    toast.success("Category Saved");
-    loadExpenses();
+      setShowModal(false);
+      setPendingExpense(null);
+      toast.success("Category Saved");
+      loadExpenses();
+    } catch (error) {
+      toast.error("Failed to save category");
+    }
   };
 
   const deleteExpenseHandler = async (id, title) => {
-    await deleteExpense(id);
-    toast.error(`${title} deleted`);
-    loadExpenses();
+    try {
+      await deleteExpense(id);
+      toast.error(`${title} deleted`);
+      loadExpenses();
+    } catch (error) {
+      toast.error(`Failed to delete ${title}`);
+    }
   };
 
   const editExpenseHandler = async (exp) => {
@@ -144,16 +209,18 @@ function App() {
 
     if (!newTitle || !newAmount) return;
 
-    await updateExpense(exp._id, {
-      title: newTitle,
-      amount: newAmount
-    });
+    try {
+      await updateExpense(exp._id, {
+        title: newTitle,
+        amount: newAmount,
+      });
 
-    toast.info("Expense Updated");
-    loadExpenses();
+      toast.info("Expense Updated");
+      loadExpenses();
+    } catch (error) {
+      toast.error("Failed to update expense");
+    }
   };
-
-  const totalExpense = expenses.reduce((sum, e) => sum + Number(e.amount), 0);
 
   useEffect(() => {
     if (!budget || budget <= 0 || totalExpense === 0) {
@@ -209,6 +276,111 @@ function App() {
         onMenuClose={() => setIsSidebarOpen(false)}
       />
 
+      <section id="dashboard" className="dashboard-panel">
+        <div className="dashboard-left">
+          <div className="dashboard-top">
+            <div>
+              <p className="dashboard-label">Welcome back, Suraj!</p>
+              <h2>Spending Overview</h2>
+              <p className="dashboard-subtitle">
+                Your cards, totals, and trends in one place.
+              </p>
+            </div>
+
+            <button className="theme-toggle" onClick={toggleTheme}>
+              {theme === "light" ? "Dark Mode" : "Light Mode"}
+            </button>
+          </div>
+
+          <div className="summary-grid">
+            <div className="summary-card dashboard-card">
+              <span className="card-title">Insights</span>
+              <p className="summary-value">{categoryCount} categories</p>
+              <p className="summary-detail">
+                You used {expenses.length} expense items.
+              </p>
+            </div>
+
+            <div className="summary-card dashboard-card highlight-card">
+              <span className="card-title">Total balance</span>
+              <p className="summary-value">Rs.{budget ? Number(budget).toLocaleString() : 0}</p>
+              <p className="summary-detail">
+                {budget ? `Remaining Rs.${budgetRemaining.toLocaleString()}` : "Budget target"}
+              </p>
+            </div>
+
+            <div className="summary-card dashboard-card accent-card">
+              <span className="card-title">Spent this month</span>
+              <p className="summary-value">Rs.{totalExpense.toLocaleString()}</p>
+              <p className="summary-detail">{budgetUsedPercent}% of budget</p>
+            </div>
+
+            <div className="summary-card dashboard-card">
+              <span className="card-title">Prediction</span>
+              <p className="summary-value">
+                {predictionLoading ? "Calculating..." : `Rs.${prediction}`}
+              </p>
+              <p className="summary-detail">Projected next cycle</p>
+            </div>
+          </div>
+        </div>
+
+        <aside className="dashboard-right">
+          <div className="credit-card">
+            <div className="card-top">
+              <span>My cards</span>
+              <span className="card-chip" />
+            </div>
+            <div className="card-number">5264 0984 1234 4321</div>
+            <div className="card-details">
+              <div>
+                <small>Card holder</small>
+                <strong>Suraj Yadav</strong>
+              </div>
+              <div>
+                <small>Expiry</small>
+                <strong>09/27</strong>
+              </div>
+            </div>
+          </div>
+
+          <div className="mini-card-grid">
+            {topCategories.length > 0 ? (
+              topCategories.map((item, index) => (
+                <div
+                  key={item.category}
+                  className="mini-card"
+                  style={{ background: categoryGradient(item.category, index) }}
+                >
+                  <span>{item.category}</span>
+                  <strong>Rs.{item.amount.toLocaleString()}</strong>
+                </div>
+              ))
+            ) : (
+              <div className="mini-card placeholder-card">
+                <span>No categories yet</span>
+                <strong>Add an expense to see category cards</strong>
+              </div>
+            )}
+          </div>
+
+          <div className="transactions-card">
+            <div className="transactions-header">
+              <h4>Latest transactions</h4>
+              <button className="text-button">Show more</button>
+            </div>
+            <ul className="transactions-list">
+              {latestTransactions.map((exp) => (
+                <li key={exp._id}>
+                  <span>{exp.title}</span>
+                  <strong>Rs.{exp.amount}</strong>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </aside>
+      </section>
+
       <section id="add-expense">
         <AddExpense onAddExpense={addExpenseHandler} />
       </section>
@@ -255,11 +427,12 @@ function App() {
           ))}
         </ul>
 
-        <h3>Total Expense: Rs.{totalExpense}</h3>
-
-        <h3>
-          Predicted Next Month Expense: {predictionLoading ? "Calculating..." : `Rs.${prediction}`}
-        </h3>
+        <div className="expense-footer-row">
+          <h3>Total Expense: Rs.{totalExpense}</h3>
+          <h3>
+            Predicted Next Month Expense: {predictionLoading ? "Calculating..." : `Rs.${prediction}`}
+          </h3>
+        </div>
       </section>
 
       <section id="charts">

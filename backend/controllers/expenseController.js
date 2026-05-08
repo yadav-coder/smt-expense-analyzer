@@ -122,7 +122,11 @@ exports.deleteExpense = async (req, res) => {
 
     const id = req.params.id;
 
-    await Expense.findByIdAndDelete(id);
+    const deleted = await Expense.findByIdAndDelete(id);
+    
+    if (!deleted) {
+      return res.status(404).json({ message: "Expense not found" });
+    }
 
     res.json({ message: "Expense deleted" });
 
@@ -148,6 +152,10 @@ exports.updateExpense = async (req, res) => {
       req.body,
       { new: true }
     );
+    
+    if (!updated) {
+      return res.status(404).json({ message: "Expense not found" });
+    }
 
     res.json(updated);
 
