@@ -1,6 +1,7 @@
 function getBaseUrl() {
   if (process.env.REACT_APP_API_URL) {
-    return process.env.REACT_APP_API_URL.replace(/\/$/, "");
+    const configuredUrl = process.env.REACT_APP_API_URL.replace(/\/$/, "");
+    return configuredUrl.endsWith("/api") ? configuredUrl : `${configuredUrl}/api`;
   }
 
   if (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1") {
