@@ -2,7 +2,7 @@
   margin-top: 40px;
   padding: 20px;
   background: #f3f4f6;
-  border-radius: 10px;
+  border-radius: 8px;
 }
 
 .cat-row {
@@ -10,22 +10,30 @@
   gap: 10px;
   align-items: center;
   margin-bottom: 8px;
+  flex-wrap: wrap;
+  padding: 10px;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
 }
 
 .cat-row input {
-  padding: 6px;
-  width: 140px;
+  width: min(240px, 100%);
 }
 
 .cat-row button {
-  padding: 5px 10px;
-  border: none;
-  background: #4f46e5;
-  color: white;
-  border-radius: 5px;
-  cursor: pointer;
+  padding: 8px 12px;
 }
 
 .cat-row button.delete {
-  background: red;
+  background: #ef4444;
+}
+
+.theme-dark .cat-box {
+  background: #111827;
+}
+
+.theme-dark .cat-row {
+  background: #0f172a;
+  border-color: #1f2937;
 }

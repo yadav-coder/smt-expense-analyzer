@@ -64,6 +64,11 @@ function getCategoryTotals(expenses) {
   }, {});
 }
 
+function formatCurrency(value) {
+  const amount = Number(value);
+  return `Rs.${Number.isFinite(amount) ? amount.toLocaleString() : "0"}`;
+}
+
 function App() {
   const [loading, setLoading] = useState(false);
   const [expenses, setExpenses] = useState([]);
@@ -73,17 +78,24 @@ function App() {
 
   const [showModal, setShowModal] = useState(false);
   const [pendingExpense, setPendingExpense] = useState(null);
+  const [editingExpense, setEditingExpense] = useState(null);
+  const [editForm, setEditForm] = useState({ title: "", amount: "", category: "" });
 
   const [budget, setBudget] = useState("");
   const [theme, setTheme] = useState("light");
   const lastAlert = useRef("");
 
-  const totalExpense = expenses.reduce((sum, e) => sum + Number(e.amount), 0);
+  const totalExpense = expenses.reduce((sum, e) => {
+    const amount = Number(e.amount);
+    return Number.isFinite(amount) ? sum + amount : sum;
+  }, 0);
   const categoryTotals = getCategoryTotals(expenses);
   const categoryCount = Object.keys(categoryTotals).length;
-  const budgetRemaining = budget ? Math.max(0, Number(budget) - totalExpense) : 0;
-  const budgetUsedPercent = budget ? Number(((totalExpense / Number(budget)) * 100).toFixed(1)) : 0;
-  const latestTransactions = [...expenses].slice(-5).reverse();
+  const budgetValue = Number(budget);
+  const hasBudget = Number.isFinite(budgetValue) && budgetValue > 0;
+  const budgetRemaining = hasBudget ? Math.max(0, budgetValue - totalExpense) : 0;
+  const budgetUsedPercent = hasBudget ? Number(((totalExpense / budgetValue) * 100).toFixed(1)) : 0;
+  const latestTransactions = [...expenses].slice(0, 5);
 
   const topCategories = Object.entries(categoryTotals)
     .sort(([, a], [, b]) => b - a)
@@ -168,9 +180,9 @@ function App() {
       }
 
       toast.success("Expense Added");
-      loadExpenses();
+      await loadExpenses();
     } catch (error) {
-      toast.error("Failed to add expense");
+      toast.error(error.message || "Failed to add expense");
     }
   };
 
@@ -187,49 +199,60 @@ function App() {
       setShowModal(false);
       setPendingExpense(null);
       toast.success("Category Saved");
-      loadExpenses();
+      await loadExpenses();
     } catch (error) {
-      toast.error("Failed to save category");
+      toast.error(error.message || "Failed to save category");
     }
   };
 
   const deleteExpenseHandler = async (id, title) => {
     try {
       await deleteExpense(id);
-      toast.error(`${title} deleted`);
-      loadExpenses();
+      toast.info(`${title} deleted`);
+      await loadExpenses();
     } catch (error) {
-      toast.error(`Failed to delete ${title}`);
+      toast.error(error.message || `Failed to delete ${title}`);
     }
   };
 
-  const editExpenseHandler = async (exp) => {
-    const newTitle = prompt("Enter new title", exp.title);
-    const newAmount = prompt("Enter new amount", exp.amount);
+  const startEditExpense = (expense) => {
+    setEditingExpense(expense._id);
+    setEditForm({
+      title: expense.title,
+      amount: String(expense.amount),
+      category: expense.category || "Other"
+    });
+  };
 
-    if (!newTitle || !newAmount) return;
+  const cancelEditExpense = () => {
+    setEditingExpense(null);
+    setEditForm({ title: "", amount: "", category: "" });
+  };
 
+  const editExpenseHandler = async (id) => {
     try {
-      await updateExpense(exp._id, {
-        title: newTitle,
-        amount: newAmount,
+      await updateExpense(id, {
+        title: editForm.title,
+        amount: editForm.amount,
+        category: editForm.category
       });
 
       toast.info("Expense Updated");
-      loadExpenses();
+      cancelEditExpense();
+      await loadExpenses();
     } catch (error) {
-      toast.error("Failed to update expense");
+      toast.error(error.message || "Failed to update expense");
     }
   };
 
   useEffect(() => {
-    if (!budget || budget <= 0 || totalExpense === 0) {
+    if (!hasBudget || totalExpense === 0) {
       lastAlert.current = "";
       return;
     }
 
-    const percent = Number(((totalExpense / Number(budget)) * 100).toFixed(1));
-    const message = `Rs.${totalExpense} / Rs.${budget} used (${percent}%)`;
+    const percent = Number(((totalExpense / budgetValue) * 100).toFixed(1));
+    const message = `${formatCurrency(totalExpense)} / ${formatCurrency(budgetValue)} used (${percent}%)`;
 
     if (percent < 50) {
       lastAlert.current = "";
@@ -252,7 +275,7 @@ function App() {
       toast.info(`Half Budget Used! ${message}`);
       lastAlert.current = "50";
     }
-  }, [totalExpense, budget]);
+  }, [totalExpense, budget, hasBudget, budgetValue]);
 
   useEffect(() => {
     loadExpenses();
@@ -297,28 +320,28 @@ function App() {
               <span className="card-title">Insights</span>
               <p className="summary-value">{categoryCount} categories</p>
               <p className="summary-detail">
-                You used {expenses.length} expense items.
+                {expenses.length === 1 ? "You used 1 expense item." : `You used ${expenses.length} expense items.`}
               </p>
             </div>
 
             <div className="summary-card dashboard-card highlight-card">
               <span className="card-title">Total balance</span>
-              <p className="summary-value">Rs.{budget ? Number(budget).toLocaleString() : 0}</p>
+              <p className="summary-value">{formatCurrency(hasBudget ? budgetValue : 0)}</p>
               <p className="summary-detail">
-                {budget ? `Remaining Rs.${budgetRemaining.toLocaleString()}` : "Budget target"}
+                {hasBudget ? `Remaining ${formatCurrency(budgetRemaining)}` : "Budget target"}
               </p>
             </div>
 
             <div className="summary-card dashboard-card accent-card">
               <span className="card-title">Spent this month</span>
-              <p className="summary-value">Rs.{totalExpense.toLocaleString()}</p>
+              <p className="summary-value">{formatCurrency(totalExpense)}</p>
               <p className="summary-detail">{budgetUsedPercent}% of budget</p>
             </div>
 
             <div className="summary-card dashboard-card">
               <span className="card-title">Prediction</span>
               <p className="summary-value">
-                {predictionLoading ? "Calculating..." : `Rs.${prediction}`}
+                {predictionLoading ? "Calculating..." : formatCurrency(prediction)}
               </p>
               <p className="summary-detail">Projected next cycle</p>
             </div>
@@ -353,7 +376,7 @@ function App() {
                   style={{ background: categoryGradient(item.category, index) }}
                 >
                   <span>{item.category}</span>
-                  <strong>Rs.{item.amount.toLocaleString()}</strong>
+                  <strong>{formatCurrency(item.amount)}</strong>
                 </div>
               ))
             ) : (
@@ -367,15 +390,19 @@ function App() {
           <div className="transactions-card">
             <div className="transactions-header">
               <h4>Latest transactions</h4>
-              <button className="text-button">Show more</button>
+              <a className="text-button" href="#expense-list">Show more</a>
             </div>
             <ul className="transactions-list">
-              {latestTransactions.map((exp) => (
-                <li key={exp._id}>
-                  <span>{exp.title}</span>
-                  <strong>Rs.{exp.amount}</strong>
-                </li>
-              ))}
+              {latestTransactions.length > 0 ? (
+                latestTransactions.map((exp) => (
+                  <li key={exp._id}>
+                    <span>{exp.title}</span>
+                    <strong>{formatCurrency(exp.amount)}</strong>
+                  </li>
+                ))
+              ) : (
+                <li className="empty-row">No transactions yet</li>
+              )}
             </ul>
           </div>
         </aside>
@@ -393,7 +420,7 @@ function App() {
           placeholder="Enter Budget"
           value={budget}
           onChange={(e) => {
-            setBudget(Number(e.target.value));
+            setBudget(e.target.value);
             lastAlert.current = "";
           }}
         />
@@ -405,32 +432,66 @@ function App() {
         {loading && <p>Loading...</p>}
 
         <ul>
+          {!loading && expenses.length === 0 && (
+            <li className="empty-state">No expenses yet. Add your first expense above.</li>
+          )}
+
           {expenses.map((exp) => (
             <li key={exp._id} className="expense-item">
-              <span>
-                {exp.title} - Rs.{exp.amount} ({exp.category})
-              </span>
+              {editingExpense === exp._id ? (
+                <div className="edit-form">
+                  <input
+                    value={editForm.title}
+                    onChange={(e) => setEditForm((prev) => ({ ...prev, title: e.target.value }))}
+                    aria-label="Expense title"
+                  />
+                  <input
+                    type="number"
+                    min="1"
+                    value={editForm.amount}
+                    onChange={(e) => setEditForm((prev) => ({ ...prev, amount: e.target.value }))}
+                    aria-label="Expense amount"
+                  />
+                  <input
+                    value={editForm.category}
+                    onChange={(e) => setEditForm((prev) => ({ ...prev, category: e.target.value }))}
+                    aria-label="Expense category"
+                  />
+                  <div className="row-actions">
+                    <button onClick={() => editExpenseHandler(exp._id)}>Save</button>
+                    <button className="secondary-btn" onClick={cancelEditExpense}>Cancel</button>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  <span className="expense-copy">
+                    <strong>{exp.title}</strong>
+                    <small>{exp.category || "Other"}</small>
+                  </span>
 
-              <div>
-                <button onClick={() => editExpenseHandler(exp)}>
-                  Edit
-                </button>
+                  <div className="expense-actions">
+                    <strong>{formatCurrency(exp.amount)}</strong>
+                    <button onClick={() => startEditExpense(exp)}>
+                      Edit
+                    </button>
 
-                <button
-                  className="delete-btn"
-                  onClick={() => deleteExpenseHandler(exp._id, exp.title)}
-                >
-                  Delete
-                </button>
-              </div>
+                    <button
+                      className="delete-btn"
+                      onClick={() => deleteExpenseHandler(exp._id, exp.title)}
+                    >
+                      Delete
+                    </button>
+                  </div>
+                </>
+              )}
             </li>
           ))}
         </ul>
 
         <div className="expense-footer-row">
-          <h3>Total Expense: Rs.{totalExpense}</h3>
+          <h3>Total Expense: {formatCurrency(totalExpense)}</h3>
           <h3>
-            Predicted Next Month Expense: {predictionLoading ? "Calculating..." : `Rs.${prediction}`}
+            Predicted Next Month Expense: {predictionLoading ? "Calculating..." : formatCurrency(prediction)}
           </h3>
         </div>
       </section>
@@ -447,7 +508,10 @@ function App() {
         />
       )}
 
-      <CategoryManager />
+      <CategoryManager
+        expensesVersion={expenses.length}
+        onCategoriesChanged={loadExpenses}
+      />
 
       <Footer />
     </div>

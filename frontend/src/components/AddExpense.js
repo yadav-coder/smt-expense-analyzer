@@ -4,11 +4,13 @@ function AddExpense({ onAddExpense }) {
   const [title, setTitle] = useState("");
   const [amount, setAmount] = useState("");
 
-  const submitHandler = () => {
-    if (!title || !amount) return;
+  const submitHandler = (event) => {
+    event.preventDefault();
+
+    if (!title.trim() || Number(amount) <= 0) return;
 
     onAddExpense({
-      title,
+      title: title.trim(),
       amount,
     });
 
@@ -17,7 +19,7 @@ function AddExpense({ onAddExpense }) {
   };
 
   return (
-    <div>
+    <form className="expense-form" onSubmit={submitHandler}>
       <h3>Add Expense</h3>
 
       <input
@@ -29,12 +31,14 @@ function AddExpense({ onAddExpense }) {
       <input
         placeholder="Amount"
         type="number"
+        min="1"
+        step="0.01"
         value={amount}
         onChange={(e) => setAmount(e.target.value)}
       />
 
-      <button onClick={submitHandler}>Add</button>
-    </div>
+      <button type="submit">Add</button>
+    </form>
   );
 }
 

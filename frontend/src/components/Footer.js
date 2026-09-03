@@ -1,7 +1,7 @@
 function Footer() {
   return (
     <footer className="footer">
-      <p>© 2026 Smart Expense Analyzer</p>
+      <p>&copy; 2026 Smart Expense Analyzer</p>
     </footer>
   );
 }

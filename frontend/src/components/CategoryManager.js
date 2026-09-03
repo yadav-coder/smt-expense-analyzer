@@ -5,8 +5,9 @@ import {
   getCategories,
   renameCategory
 } from "../services/api";
+import { toast } from "react-toastify";
 
-function CategoryManager() {
+function CategoryManager({ expensesVersion, onCategoriesChanged }) {
 
   const [categories, setCategories] = useState([]);
   const [editing, setEditing] = useState(null);
@@ -15,8 +16,12 @@ function CategoryManager() {
   // =========================
 
   const loadCategories = async () => {
-    const data = await getCategories();
-    setCategories(Array.isArray(data) ? data : []);
+    try {
+      const data = await getCategories();
+      setCategories(Array.isArray(data) ? data : []);
+    } catch (error) {
+      toast.error(error.message || "Failed to load categories");
+    }
   };
 
   // =========================
@@ -27,25 +32,37 @@ function CategoryManager() {
   };
 
   const saveRename = async () => {
-    if (!newName) return;
+    if (!newName.trim()) return;
 
-    await renameCategory(editing, newName);
+    try {
+      await renameCategory(editing, newName.trim());
 
-    setEditing(null);
-    setNewName("");
-    loadCategories();
+      setEditing(null);
+      setNewName("");
+      await loadCategories();
+      onCategoriesChanged?.();
+      toast.success("Category renamed");
+    } catch (error) {
+      toast.error(error.message || "Failed to rename category");
+    }
   };
 
   const handleDeleteCategory = async (name) => {
-    await deleteCategory(name);
-    loadCategories();
+    try {
+      await deleteCategory(name);
+      await loadCategories();
+      onCategoriesChanged?.();
+      toast.info("Category moved to Other");
+    } catch (error) {
+      toast.error(error.message || "Failed to delete category");
+    }
   };
 
   // =========================
 
   useEffect(() => {
     loadCategories();
-  }, []);
+  }, [expensesVersion]);
 
   // =========================
 
@@ -53,6 +70,10 @@ function CategoryManager() {
     <div className="cat-box">
 
       <h3>Manage Categories</h3>
+
+      {categories.length === 0 && (
+        <p className="empty-state">Categories will appear after expenses are saved.</p>
+      )}
 
       {categories.map((cat) => (
         <div key={cat} className="cat-row">

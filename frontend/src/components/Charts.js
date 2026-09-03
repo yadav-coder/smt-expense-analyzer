@@ -30,6 +30,7 @@ function Charts({ expenses }) {
 
   const labels = Object.keys(categoryTotals);
   const amounts = labels.map((label) => categoryTotals[label]);
+  const hasData = labels.length > 0;
 
   const colors = [
     "#6366f1",
@@ -66,31 +67,37 @@ function Charts({ expenses }) {
 
   return (
     <div className="charts-panel">
-      <div className="chart-block">
-        <h3>Category Spending</h3>
-        <div className="chart-card">
-          <Pie data={pieData} />
-        </div>
-      </div>
-
-      <div className="chart-block">
-        <h3>Expense Trend</h3>
-        <div className="chart-card">
-          <Bar data={barData} />
-        </div>
-      </div>
-
-      <div className="category-legend">
-        {labels.map((label, index) => (
-          <div className="legend-item" key={label}>
-            <span
-              className="legend-color"
-              style={{ backgroundColor: colors[index % colors.length] }}
-            />
-            <span>{label}: Rs.{categoryTotals[label]}</span>
+      {hasData ? (
+        <>
+          <div className="chart-block">
+            <h3>Category Spending</h3>
+            <div className="chart-card">
+              <Pie data={pieData} />
+            </div>
           </div>
-        ))}
-      </div>
+
+          <div className="chart-block">
+            <h3>Expense Trend</h3>
+            <div className="chart-card">
+              <Bar data={barData} />
+            </div>
+          </div>
+
+          <div className="category-legend">
+            {labels.map((label, index) => (
+              <div className="legend-item" key={label}>
+                <span
+                  className="legend-color"
+                  style={{ backgroundColor: colors[index % colors.length] }}
+                />
+                <span>{label}: Rs.{categoryTotals[label].toLocaleString()}</span>
+              </div>
+            ))}
+          </div>
+        </>
+      ) : (
+        <div className="chart-card empty-state">Charts will appear after you add expenses.</div>
+      )}
     </div>
   );
 }

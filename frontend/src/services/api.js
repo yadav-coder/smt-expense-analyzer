@@ -1,82 +1,57 @@
-const BASE_URL = "https://smt-expense-analyzer.onrender.com/api";
+const BASE_URL = process.env.REACT_APP_API_URL || "http://localhost:5000/api";
 
-export const getExpenses = async () => {
-  const res = await fetch(`${BASE_URL}/expenses`);
-  return res.json();
-};
-
-export const addExpense = async (expense) => {
-  const res = await fetch(`${BASE_URL}/expenses`, {
-    method: "POST",
+async function request(path, options = {}) {
+  const res = await fetch(`${BASE_URL}${path}`, {
     headers: {
       "Content-Type": "application/json",
+      ...(options.headers || {})
     },
-    body: JSON.stringify(expense),
-  });
-  return res.json();
-};
-
-export const predictExpenses = async (expenses) => {
-  const res = await fetch(`${BASE_URL}/expenses/predict`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify({ expenses })
+    ...options
   });
 
-  return res.json();
-};
+  const data = await res.json().catch(() => null);
 
-export const getPrediction = async (expenses) => {
-  const res = await fetch(`${BASE_URL}/expenses/predict`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ expenses }),
-  });
-
-  const data = await res.json();
-
-  if (!res.ok) {
-    throw new Error(data?.message || "Prediction request failed");
+  if (!res.ok && res.status !== 202) {
+    throw new Error(data?.message || "Request failed");
   }
 
   return data;
-};
+}
 
-export const deleteExpense = async (id) => {
-  await fetch(`${BASE_URL}/expenses/${id}`, {
-    method: "DELETE",
+export const getExpenses = () => request("/expenses");
+
+export const addExpense = (expense) =>
+  request("/expenses", {
+    method: "POST",
+    body: JSON.stringify(expense)
   });
-};
 
-export const updateExpense = async (id, expense) => {
-  const res = await fetch(`${BASE_URL}/expenses/${id}`, {
+export const getPrediction = (expenses) =>
+  request("/expenses/predict", {
+    method: "POST",
+    body: JSON.stringify({ expenses })
+  });
+
+export const deleteExpense = (id) =>
+  request(`/expenses/${id}`, {
+    method: "DELETE"
+  });
+
+export const updateExpense = (id, expense) =>
+  request(`/expenses/${id}`, {
     method: "PUT",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(expense),
+    body: JSON.stringify(expense)
   });
-  return res.json();
-};
 
-export const getCategories = async () => {
-  const res = await fetch(`${BASE_URL}/categories`);
-  return res.json();
-};
+export const getCategories = () => request("/categories");
 
-export const renameCategory = async (oldName, newName) => {
-  const res = await fetch(`${BASE_URL}/categories/rename`, {
+export const renameCategory = (oldName, newName) =>
+  request("/categories/rename", {
     method: "PUT",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ oldName, newName }),
+    body: JSON.stringify({ oldName, newName })
   });
-  return res.json();
-};
 
-export const deleteCategory = async (name) => {
-  const res = await fetch(
-    `${BASE_URL}/categories/${encodeURIComponent(name)}`,
-    { method: "DELETE" }
-  );
-  return res.json();
-};
+export const deleteCategory = (name) =>
+  request(`/categories/${encodeURIComponent(name)}`, {
+    method: "DELETE"
+  });

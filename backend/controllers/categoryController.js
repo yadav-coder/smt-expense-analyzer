@@ -1,28 +1,77 @@
 const KeywordCategory = require("../models/KeywordCategory");
+const Expense = require("../models/Expense");
 
-// Get all categories
+function normalizeName(value) {
+  return String(value || "").trim();
+}
+
 exports.getCategories = async (req, res) => {
-  const categories = await KeywordCategory.distinct("category");
-  res.json(categories);
+  try {
+    const learnedCategories = await KeywordCategory.distinct("category");
+    const expenseCategories = await Expense.distinct("category");
+    const categories = [...new Set([...learnedCategories, ...expenseCategories])]
+      .filter(Boolean)
+      .sort((a, b) => a.localeCompare(b));
+
+    res.json(categories);
+  } catch (error) {
+    res.status(500).json({
+      message: "Error fetching categories",
+      error: error.message
+    });
+  }
 };
 
-// Rename category
 exports.renameCategory = async (req, res) => {
-  const { oldName, newName } = req.body;
+  try {
+    const oldName = normalizeName(req.body.oldName);
+    const newName = normalizeName(req.body.newName);
 
-  await KeywordCategory.updateMany(
-    { category: oldName },
-    { $set: { category: newName } }
-  );
+    if (!oldName || !newName) {
+      return res.status(400).json({ message: "Old and new category names are required" });
+    }
 
-  res.json({ message: "Category renamed" });
+    await Promise.all([
+      KeywordCategory.updateMany(
+        { category: oldName },
+        { $set: { category: newName } }
+      ),
+      Expense.updateMany(
+        { category: oldName },
+        { $set: { category: newName } }
+      )
+    ]);
+
+    res.json({ message: "Category renamed" });
+  } catch (error) {
+    res.status(500).json({
+      message: "Error renaming category",
+      error: error.message
+    });
+  }
 };
 
-// Delete category
 exports.deleteCategory = async (req, res) => {
-  const { name } = req.params;
+  try {
+    const name = normalizeName(req.params.name);
 
-  await KeywordCategory.deleteMany({ category: name });
+    if (!name) {
+      return res.status(400).json({ message: "Category name is required" });
+    }
 
-  res.json({ message: "Category deleted" });
+    await Promise.all([
+      KeywordCategory.deleteMany({ category: name }),
+      Expense.updateMany(
+        { category: name },
+        { $set: { category: "Other" } }
+      )
+    ]);
+
+    res.json({ message: "Category deleted" });
+  } catch (error) {
+    res.status(500).json({
+      message: "Error deleting category",
+      error: error.message
+    });
+  }
 };

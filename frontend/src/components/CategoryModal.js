@@ -25,14 +25,14 @@ function CategoryModal({ title, onSave, onClose }) {
 
   const handleCustomSave = () => {
     if (!customCategory.trim()) return;
-    onSave(customCategory);
+    onSave(customCategory.trim());
   };
 
   return (
-    <div className="modal-overlay">
-      <div className="modal-box">
+    <div className="modal-overlay" role="presentation">
+      <div className="modal-box" role="dialog" aria-modal="true" aria-labelledby="category-title">
 
-        <h3>Select Category</h3>
+        <h3 id="category-title">Select Category</h3>
         <p><b>{title}</b></p>
 
         {!showInput && (
@@ -66,7 +66,7 @@ function CategoryModal({ title, onSave, onClose }) {
           </>
         )}
 
-        <button className="close-btn" onClick={onClose}>
+        <button type="button" className="close-btn" onClick={onClose}>
           Cancel
         </button>
 
