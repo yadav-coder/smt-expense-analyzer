@@ -3,13 +3,11 @@ function getBaseUrl() {
     return process.env.REACT_APP_API_URL.replace(/\/$/, "");
   }
 
-  const hostname = window.location.hostname;
-
-  if (hostname.includes("onrender.com") && hostname.includes("frontend")) {
-    return `https://${hostname.replace("frontend", "backend")}/api`;
+  if (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1") {
+    return "http://localhost:5000/api";
   }
 
-  return "http://localhost:5000/api";
+  return "";
 }
 
 const BASE_URL = getBaseUrl();
@@ -20,6 +18,12 @@ export function setAuthToken(token) {
 }
 
 async function request(path, options = {}) {
+  if (!BASE_URL) {
+    throw new Error(
+      "Missing REACT_APP_API_URL. Set it to your deployed backend URL, for example https://your-backend.onrender.com/api."
+    );
+  }
+
   try {
     const res = await fetch(`${BASE_URL}${path}`, {
       headers: {
