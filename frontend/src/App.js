@@ -10,13 +10,14 @@ import "./App.css";
 import AddExpense from "./components/AddExpense";
 
 import {
-  addExpense,
-  deleteExpense,
-  getExpenses,
-  loginUser,
-  getPrediction,
-  registerUser,
-  updateExpense
+    addExpense,
+    deleteExpense,
+    getExpenses,
+    getPrediction,
+    loginUser,
+    registerUser,
+    setAuthToken,
+    updateExpense
 } from "./services/api";
 
 import { ToastContainer, toast } from "react-toastify";
@@ -135,6 +136,7 @@ function AuthPage({ onAuth }) {
           password: form.password
         });
 
+        setAuthToken(result.token);
         onAuth(result.user);
         return;
       }
@@ -559,8 +561,10 @@ function App() {
   }, [totalExpense, budget, hasBudget, budgetValue]);
 
   useEffect(() => {
-    loadExpenses();
-  }, []);
+    if (isAuthenticated) {
+      loadExpenses();
+    }
+  }, [isAuthenticated]);
 
   useEffect(() => {
     document.body.style.overflow = isSidebarOpen ? "hidden" : "";
@@ -576,6 +580,7 @@ function App() {
   };
 
   const handleLogout = () => {
+    setAuthToken(null);
     setCurrentUser(null);
     setIsAuthenticated(false);
     setIsSidebarOpen(false);

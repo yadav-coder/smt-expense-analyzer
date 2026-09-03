@@ -38,8 +38,8 @@ function validateExpensePayload(body) {
   return { title, amount, category, date };
 }
 
-function buildExpenseFilter(query = {}) {
-  const filter = {};
+function buildExpenseFilter(query = {}, userId) {
+  const filter = { user: userId };
   const category = normalizeText(query.category);
 
   if (category) {
@@ -139,7 +139,7 @@ async function learnCategoryFromTitle(title, category) {
 
 exports.getExpenses = async (req, res) => {
   try {
-    const expenses = await Expense.find(buildExpenseFilter(req.query)).sort({ date: -1 });
+    const expenses = await Expense.find(buildExpenseFilter(req.query, req.user.id)).sort({ date: -1 });
     res.json(expenses);
   } catch (error) {
     res.status(500).json({
@@ -172,6 +172,7 @@ exports.addExpense = async (req, res) => {
     }
 
     const expense = new Expense({
+      user: req.user.id,
       title: payload.title,
       amount: payload.amount,
       category,
@@ -194,7 +195,7 @@ exports.deleteExpense = async (req, res) => {
       return res.status(400).json({ message: "Invalid expense id" });
     }
 
-    const deleted = await Expense.findByIdAndDelete(req.params.id);
+    const deleted = await Expense.findOneAndDelete({ _id: req.params.id, user: req.user.id });
 
     if (!deleted) {
       return res.status(404).json({ message: "Expense not found" });
@@ -250,7 +251,7 @@ exports.updateExpense = async (req, res) => {
     }
 
     const updated = await Expense.findByIdAndUpdate(
-      req.params.id,
+      { _id: req.params.id, user: req.user.id },
       update,
       { new: true, runValidators: true }
     );
@@ -274,7 +275,7 @@ exports.updateExpense = async (req, res) => {
 
 exports.getExpenseSummary = async (req, res) => {
   try {
-    const filter = buildExpenseFilter(req.query);
+    const filter = buildExpenseFilter(req.query, req.user.id);
     const expenses = await Expense.find(filter).sort({ date: -1 });
     const total = expenses.reduce((sum, expense) => sum + Number(expense.amount || 0), 0);
     const categories = expenses.reduce((acc, expense) => {

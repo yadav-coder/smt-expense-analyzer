@@ -13,12 +13,18 @@ function getBaseUrl() {
 }
 
 const BASE_URL = getBaseUrl();
+let authToken = null;
+
+export function setAuthToken(token) {
+  authToken = token || null;
+}
 
 async function request(path, options = {}) {
   try {
     const res = await fetch(`${BASE_URL}${path}`, {
       headers: {
         "Content-Type": "application/json",
+        ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}),
         ...(options.headers || {})
       },
       ...options

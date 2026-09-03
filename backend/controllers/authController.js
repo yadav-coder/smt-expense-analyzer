@@ -1,4 +1,5 @@
 const bcrypt = require("bcryptjs");
+const jwt = require("jsonwebtoken");
 const User = require("../models/User");
 
 function normalizeEmail(email) {
@@ -73,6 +74,11 @@ exports.login = async (req, res) => {
 
     res.json({
       message: "Login successful",
+      token: jwt.sign(
+        { id: user._id.toString(), email: user.email },
+        process.env.JWT_SECRET,
+        { expiresIn: "1h" }
+      ),
       user: {
         id: user._id,
         name: user.name,

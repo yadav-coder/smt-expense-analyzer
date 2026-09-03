@@ -8,7 +8,7 @@ function normalizeName(value) {
 exports.getCategories = async (req, res) => {
   try {
     const learnedCategories = await KeywordCategory.distinct("category");
-    const expenseCategories = await Expense.distinct("category");
+    const expenseCategories = await Expense.distinct("category", { user: req.user.id });
     const categories = [...new Set([...learnedCategories, ...expenseCategories])]
       .filter(Boolean)
       .sort((a, b) => a.localeCompare(b));
@@ -37,7 +37,7 @@ exports.renameCategory = async (req, res) => {
         { $set: { category: newName } }
       ),
       Expense.updateMany(
-        { category: oldName },
+        { user: req.user.id, category: oldName },
         { $set: { category: newName } }
       )
     ]);
@@ -62,7 +62,7 @@ exports.deleteCategory = async (req, res) => {
     await Promise.all([
       KeywordCategory.deleteMany({ category: name }),
       Expense.updateMany(
-        { category: name },
+        { user: req.user.id, category: name },
         { $set: { category: "Other" } }
       )
     ]);
