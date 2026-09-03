@@ -4,11 +4,14 @@ const keywordCategorySchema = new mongoose.Schema({
   keyword: {
     type: String,
     required: true,
-    unique: true
+    unique: true,
+    trim: true,
+    lowercase: true
   },
   category: {
     type: String,
-    required: true
+    required: true,
+    trim: true
   }
 });
 

@@ -3,6 +3,22 @@ import { useState } from "react";
 function AddExpense({ onAddExpense }) {
   const [title, setTitle] = useState("");
   const [amount, setAmount] = useState("");
+  const [category, setCategory] = useState("");
+  const [date, setDate] = useState("");
+
+  const categories = [
+    "Food",
+    "Groceries",
+    "Transport",
+    "Rent",
+    "Bills",
+    "Health",
+    "Education",
+    "Clothing",
+    "Electronics",
+    "Mobile",
+    "Other"
+  ];
 
   const submitHandler = (event) => {
     event.preventDefault();
@@ -12,10 +28,14 @@ function AddExpense({ onAddExpense }) {
     onAddExpense({
       title: title.trim(),
       amount,
+      category,
+      date,
     });
 
     setTitle("");
     setAmount("");
+    setCategory("");
+    setDate("");
   };
 
   return (
@@ -35,6 +55,19 @@ function AddExpense({ onAddExpense }) {
         step="0.01"
         value={amount}
         onChange={(e) => setAmount(e.target.value)}
+      />
+
+      <select value={category} onChange={(e) => setCategory(e.target.value)}>
+        <option value="">Auto category</option>
+        {categories.map((cat) => (
+          <option key={cat} value={cat}>{cat}</option>
+        ))}
+      </select>
+
+      <input
+        type="date"
+        value={date}
+        onChange={(e) => setDate(e.target.value)}
       />
 
       <button type="submit">Add</button>

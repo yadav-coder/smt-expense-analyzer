@@ -13,7 +13,9 @@ import {
   addExpense,
   deleteExpense,
   getExpenses,
+  loginUser,
   getPrediction,
+  registerUser,
   updateExpense
 } from "./services/api";
 
@@ -69,7 +71,286 @@ function formatCurrency(value) {
   return `Rs.${Number.isFinite(amount) ? amount.toLocaleString() : "0"}`;
 }
 
+function AuthPage({ onAuth }) {
+  const [activeTab, setActiveTab] = useState("login");
+  const [form, setForm] = useState({
+    email: "",
+    password: "",
+    name: "",
+    confirmPassword: "",
+  });
+  const [errors, setErrors] = useState({});
+  const [authMessage, setAuthMessage] = useState("");
+  const [authLoading, setAuthLoading] = useState(false);
+
+  const validateForm = () => {
+    const nextErrors = {};
+
+    if (activeTab === "register" && !form.name.trim()) {
+      nextErrors.name = "Full name is required.";
+    }
+
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) {
+      nextErrors.email = "Enter a valid email address.";
+    }
+
+    if (form.password.length < 8) {
+      nextErrors.password = "Password must be at least 8 characters.";
+    }
+
+    if (activeTab === "register" && form.confirmPassword !== form.password) {
+      nextErrors.confirmPassword = "Passwords do not match.";
+    }
+
+    setErrors(nextErrors);
+    return Object.keys(nextErrors).length === 0;
+  };
+
+  const updateField = (field, value) => {
+    setForm((prev) => ({ ...prev, [field]: value }));
+    setErrors((prev) => ({ ...prev, [field]: "" }));
+    setAuthMessage("");
+  };
+
+  const switchTab = (tab) => {
+    setActiveTab(tab);
+    setErrors({});
+    setAuthMessage("");
+  };
+
+  const submitAuth = async (event) => {
+    event.preventDefault();
+
+    if (!validateForm()) {
+      return;
+    }
+
+    try {
+      setAuthLoading(true);
+      setAuthMessage("");
+
+      if (activeTab === "login") {
+        const result = await loginUser({
+          email: form.email,
+          password: form.password
+        });
+
+        onAuth(result.user);
+        return;
+      }
+
+      const result = await registerUser({
+        name: form.name,
+        email: form.email,
+        password: form.password
+      });
+
+      setAuthMessage(result.message || "Registration successful. Please login now.");
+      setActiveTab("login");
+      setForm((prev) => ({
+        ...prev,
+        name: "",
+        confirmPassword: "",
+        password: ""
+      }));
+    } catch (error) {
+      setAuthMessage(error.message);
+    } finally {
+      setAuthLoading(false);
+    }
+  };
+
+  return (
+    <main className="auth-screen">
+      <div className="auth-background" aria-hidden="true">
+        <div className="finance-grid">
+          <div className="finance-widget widget-income">
+            <span className="widget-icon">+</span>
+            <div>
+              <small>Monthly savings</small>
+              <strong>Rs.12,450</strong>
+            </div>
+          </div>
+          <div className="finance-widget widget-spend">
+            <span className="widget-icon">-</span>
+            <div>
+              <small>Card spend</small>
+              <strong>Rs.34,890</strong>
+            </div>
+          </div>
+          <div className="floating-chart">
+            <span style={{ height: "42%" }} />
+            <span style={{ height: "68%" }} />
+            <span style={{ height: "54%" }} />
+            <span style={{ height: "82%" }} />
+            <span style={{ height: "61%" }} />
+          </div>
+          <div className="pattern-card">
+            <span />
+            <span />
+            <span />
+          </div>
+        </div>
+      </div>
+
+      <header className="auth-brand">
+        <div className="brand-mark">
+          <span />
+        </div>
+        <div>
+          <h1>Smart Expense Analyzer</h1>
+          <p>Personal finance intelligence</p>
+        </div>
+      </header>
+
+      <section className="auth-layout" aria-label="Authentication">
+        <aside className="auth-insight-panel" aria-label="Expense insights preview">
+          <div className="insight-header">
+            <span>Live budget snapshot</span>
+            <strong>Sep 2026</strong>
+          </div>
+          <div className="insight-total">
+            <small>Total tracked</small>
+            <strong>Rs.48,320</strong>
+          </div>
+          <div className="insight-bars">
+            <div>
+              <span>Food</span>
+              <i style={{ width: "72%" }} />
+            </div>
+            <div>
+              <span>Travel</span>
+              <i style={{ width: "48%" }} />
+            </div>
+            <div>
+              <span>Rent</span>
+              <i style={{ width: "86%" }} />
+            </div>
+          </div>
+          <div className="insight-footer">
+            <span>Projected next month</span>
+            <strong>Rs.51,100</strong>
+          </div>
+        </aside>
+
+        <div className="auth-card">
+          <div className="auth-tabs" role="tablist" aria-label="Authentication tabs">
+            <button
+              className={activeTab === "login" ? "active" : ""}
+              onClick={() => switchTab("login")}
+              role="tab"
+              aria-selected={activeTab === "login"}
+            >
+              Login
+            </button>
+            <button
+              className={activeTab === "register" ? "active" : ""}
+              onClick={() => switchTab("register")}
+              role="tab"
+              aria-selected={activeTab === "register"}
+            >
+              Register
+            </button>
+          </div>
+
+          <div className="auth-card-header">
+            <h2>{activeTab === "login" ? "Welcome back" : "Create your account"}</h2>
+            <p>{activeTab === "login" ? "Sign in to continue analyzing your spending." : "Start tracking expenses with smarter insights."}</p>
+          </div>
+
+          <form className="auth-form" noValidate onSubmit={submitAuth}>
+            {activeTab === "register" && (
+              <label>
+                Full Name
+                <input
+                  className={errors.name ? "input-error" : ""}
+                  type="text"
+                  placeholder="Suraj Yadav"
+                  value={form.name}
+                  onChange={(e) => updateField("name", e.target.value)}
+                  aria-invalid={Boolean(errors.name)}
+                />
+                {errors.name && <small className="field-error">{errors.name}</small>}
+              </label>
+            )}
+
+            <label>
+              Email Address
+              <input
+                className={errors.email ? "input-error" : ""}
+                type="email"
+                placeholder="name@example.com"
+                value={form.email}
+                onChange={(e) => updateField("email", e.target.value)}
+                aria-invalid={Boolean(errors.email)}
+              />
+              {errors.email && <small className="field-error">{errors.email}</small>}
+            </label>
+
+            <label>
+              Password
+              <input
+                className={errors.password ? "input-error" : ""}
+                type="password"
+                placeholder="Enter password"
+                value={form.password}
+                onChange={(e) => updateField("password", e.target.value)}
+                aria-invalid={Boolean(errors.password)}
+              />
+              {errors.password && <small className="field-error">{errors.password}</small>}
+            </label>
+
+            {activeTab === "register" && (
+              <label>
+                Confirm Password
+                <input
+                  className={errors.confirmPassword ? "input-error" : ""}
+                  type="password"
+                  placeholder="Re-enter password"
+                  value={form.confirmPassword}
+                  onChange={(e) => updateField("confirmPassword", e.target.value)}
+                  aria-invalid={Boolean(errors.confirmPassword)}
+                />
+                {errors.confirmPassword && <small className="field-error">{errors.confirmPassword}</small>}
+              </label>
+            )}
+
+            {activeTab === "login" && (
+              <div className="auth-options">
+                <label className="remember-row">
+                  <input type="checkbox" defaultChecked />
+                  <span>Remember me</span>
+                </label>
+                <a href="#forgot-password">Forgot Password?</a>
+              </div>
+            )}
+
+            {authMessage && (
+              <p className={authMessage.toLowerCase().includes("successful") ? "auth-status success" : "auth-status error"}>
+                {authMessage}
+              </p>
+            )}
+
+            <button className="auth-submit" type="submit" disabled={authLoading}>
+              {authLoading ? "Please wait..." : activeTab === "login" ? "Login" : "Register"}
+            </button>
+          </form>
+
+          <p className="auth-switch">
+            {activeTab === "login" ? "Don't have an account?" : "Already have an account?"}
+            <button type="button" onClick={() => switchTab(activeTab === "login" ? "register" : "login")}>
+              {activeTab === "login" ? "Register" : "Login"}
+            </button>
+          </p>
+        </div>
+      </section>
+    </main>
+  );
+}
+
 function App() {
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [currentUser, setCurrentUser] = useState(null);
   const [loading, setLoading] = useState(false);
   const [expenses, setExpenses] = useState([]);
   const [prediction, setPrediction] = useState(0);
@@ -289,6 +570,21 @@ function App() {
     };
   }, [isSidebarOpen]);
 
+  const handleAuth = (user) => {
+    setCurrentUser(user);
+    setIsAuthenticated(true);
+  };
+
+  const handleLogout = () => {
+    setCurrentUser(null);
+    setIsAuthenticated(false);
+    setIsSidebarOpen(false);
+  };
+
+  if (!isAuthenticated) {
+    return <AuthPage onAuth={handleAuth} />;
+  }
+
   return (
     <div className="container">
       <ToastContainer />
@@ -297,6 +593,9 @@ function App() {
         isSidebarOpen={isSidebarOpen}
         onMenuToggle={() => setIsSidebarOpen((prev) => !prev)}
         onMenuClose={() => setIsSidebarOpen(false)}
+        user={currentUser}
+        isAuthenticated={isAuthenticated}
+        onLogout={handleLogout}
       />
 
       <section id="dashboard" className="dashboard-panel">

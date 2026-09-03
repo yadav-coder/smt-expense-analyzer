@@ -1,6 +1,9 @@
 const Expense = require("../models/Expense");
 const KeywordCategory = require("../models/KeywordCategory");
 const axios = require("axios");
+const mongoose = require("mongoose");
+
+const DEFAULT_CATEGORY = "Other";
 
 function normalizeText(value) {
   return String(value || "").trim();
@@ -18,6 +21,7 @@ function validateExpensePayload(body) {
   const title = normalizeText(body.title);
   const amount = Number(body.amount);
   const category = normalizeText(body.category);
+  const date = body.date ? new Date(body.date) : undefined;
 
   if (!title) {
     return { error: "Title is required" };
@@ -27,7 +31,44 @@ function validateExpensePayload(body) {
     return { error: "Amount must be a positive number" };
   }
 
-  return { title, amount, category };
+  if (body.date && Number.isNaN(date.getTime())) {
+    return { error: "Date must be a valid date" };
+  }
+
+  return { title, amount, category, date };
+}
+
+function buildExpenseFilter(query = {}) {
+  const filter = {};
+  const category = normalizeText(query.category);
+
+  if (category) {
+    filter.category = category;
+  }
+
+  if (query.from || query.to) {
+    filter.date = {};
+
+    if (query.from) {
+      const from = new Date(query.from);
+      if (!Number.isNaN(from.getTime())) filter.date.$gte = from;
+    }
+
+    if (query.to) {
+      const to = new Date(query.to);
+      if (!Number.isNaN(to.getTime())) filter.date.$lte = to;
+    }
+
+    if (Object.keys(filter.date).length === 0) {
+      delete filter.date;
+    }
+  }
+
+  return filter;
+}
+
+function isValidId(id) {
+  return mongoose.Types.ObjectId.isValid(id);
 }
 
 async function detectCategorySmart(title) {
@@ -52,10 +93,25 @@ async function detectCategorySmart(title) {
     pant: "Clothing",
     phone: "Mobile",
     mobile: "Mobile",
+    recharge: "Mobile",
     bus: "Transport",
     train: "Transport",
     cab: "Transport",
     taxi: "Transport",
+    fuel: "Transport",
+    petrol: "Transport",
+    rent: "Rent",
+    electricity: "Bills",
+    water: "Bills",
+    internet: "Bills",
+    bill: "Bills",
+    medicine: "Health",
+    doctor: "Health",
+    hospital: "Health",
+    fee: "Education",
+    school: "Education",
+    college: "Education",
+    book: "Education",
     laptop: "Electronics",
     charger: "Electronics"
   };
@@ -83,7 +139,7 @@ async function learnCategoryFromTitle(title, category) {
 
 exports.getExpenses = async (req, res) => {
   try {
-    const expenses = await Expense.find().sort({ date: -1 });
+    const expenses = await Expense.find(buildExpenseFilter(req.query)).sort({ date: -1 });
     res.json(expenses);
   } catch (error) {
     res.status(500).json({
@@ -108,21 +164,18 @@ exports.addExpense = async (req, res) => {
     }
 
     if (!category) {
-      return res.status(202).json({
-        needCategory: true,
-        title: payload.title,
-        amount: payload.amount
-      });
+      category = DEFAULT_CATEGORY;
     }
 
-    if (payload.category) {
+    if (category !== DEFAULT_CATEGORY) {
       await learnCategoryFromTitle(payload.title, category);
     }
 
     const expense = new Expense({
       title: payload.title,
       amount: payload.amount,
-      category
+      category,
+      ...(payload.date ? { date: payload.date } : {})
     });
 
     await expense.save();
@@ -137,6 +190,10 @@ exports.addExpense = async (req, res) => {
 
 exports.deleteExpense = async (req, res) => {
   try {
+    if (!isValidId(req.params.id)) {
+      return res.status(400).json({ message: "Invalid expense id" });
+    }
+
     const deleted = await Expense.findByIdAndDelete(req.params.id);
 
     if (!deleted) {
@@ -154,6 +211,10 @@ exports.deleteExpense = async (req, res) => {
 
 exports.updateExpense = async (req, res) => {
   try {
+    if (!isValidId(req.params.id)) {
+      return res.status(400).json({ message: "Invalid expense id" });
+    }
+
     const update = {};
 
     if (req.body.title !== undefined) {
@@ -174,6 +235,14 @@ exports.updateExpense = async (req, res) => {
       const category = normalizeText(req.body.category);
       if (!category) return res.status(400).json({ message: "Category is required" });
       update.category = category;
+    }
+
+    if (req.body.date !== undefined) {
+      const date = new Date(req.body.date);
+      if (Number.isNaN(date.getTime())) {
+        return res.status(400).json({ message: "Date must be a valid date" });
+      }
+      update.date = date;
     }
 
     if (Object.keys(update).length === 0) {
@@ -198,6 +267,31 @@ exports.updateExpense = async (req, res) => {
   } catch (error) {
     res.status(500).json({
       message: "Error updating expense",
+      error: error.message
+    });
+  }
+};
+
+exports.getExpenseSummary = async (req, res) => {
+  try {
+    const filter = buildExpenseFilter(req.query);
+    const expenses = await Expense.find(filter).sort({ date: -1 });
+    const total = expenses.reduce((sum, expense) => sum + Number(expense.amount || 0), 0);
+    const categories = expenses.reduce((acc, expense) => {
+      const category = expense.category || DEFAULT_CATEGORY;
+      acc[category] = (acc[category] || 0) + Number(expense.amount || 0);
+      return acc;
+    }, {});
+
+    res.json({
+      count: expenses.length,
+      total,
+      categories,
+      latest: expenses.slice(0, 5)
+    });
+  } catch (error) {
+    res.status(500).json({
+      message: "Error building expense summary",
       error: error.message
     });
   }
