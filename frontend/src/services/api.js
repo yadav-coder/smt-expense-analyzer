@@ -79,6 +79,12 @@ export const getPrediction = (expenses) =>
     body: JSON.stringify({ expenses })
   });
 
+export const sendAiChatMessage = ({ message, monthlyBudget, predictedNextMonthExpense }) =>
+  request("/ai/chat", {
+    method: "POST",
+    body: JSON.stringify({ message, monthlyBudget, predictedNextMonthExpense })
+  });
+
 export const deleteExpense = (id) =>
   request(`/expenses/${id}`, {
     method: "DELETE"
