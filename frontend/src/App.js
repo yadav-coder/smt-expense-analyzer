@@ -494,7 +494,7 @@ function TransactionList({
     return <div className="state-card">No expenses yet.</div>;
   }
 
-  const visibleExpenses = short ? expenses.slice(0, 5) : expenses;
+  const visibleExpenses = expenses;
 
   return (
     <div className={`expense-list ${short ? "short-list" : ""}`}>
@@ -570,7 +570,7 @@ function DashboardPage({
   totalExpense,
   user
 }) {
-  const latestTransactions = [...expenses].slice(0, 5);
+  const latestTransactions = [...expenses];
 
   return (
     <>

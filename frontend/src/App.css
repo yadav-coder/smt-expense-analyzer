@@ -648,6 +648,12 @@ select:focus {
   gap: 8px;
 }
 
+.expense-list.short-list {
+  max-height: 520px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
 .expense-list-head,
 .expense-row {
   display: grid;
