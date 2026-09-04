@@ -18,6 +18,10 @@ export function setAuthToken(token) {
   authToken = token || null;
 }
 
+export function getAuthToken() {
+  return authToken;
+}
+
 async function request(path, options = {}) {
   if (!BASE_URL) {
     throw new Error(

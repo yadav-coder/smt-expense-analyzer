@@ -1,0 +1,27 @@
+Topic: glossary
+Source: Standard Glossary of Personal Finance & Economics
+Title: Essential Financial Terms and Concepts
+
+1. Budget:
+A financial statement expressing planned expenditures, revenues, and savings allocations across a defined timeframe.
+
+2. Cash Flow:
+The net balance of money flowing into (inflows) and out of (outflows) personal accounts over a measured duration. Positive cash flow occurs when income exceeds expenditures.
+
+3. Discretionary Spending:
+Purchases for non-essential goods and services that a consumer wants rather than needs for fundamental survival (e.g., luxury items, entertainment, leisure).
+
+4. Fixed Expenses:
+Recurring expenses that do not vary in cost from month to month (e.g., rent, fixed mortgage payment, auto loan payment).
+
+5. Variable Expenses:
+Expenses that fluctuate depending on consumption habits, prices, or seasonal factors (e.g., utility bills, groceries, leisure dining).
+
+6. Sinking Fund:
+A strategic reserve created by setting aside incremental sums of cash periodically for a predetermined future expense (e.g., holiday gifts, property taxes, auto repairs).
+
+7. Net Worth:
+The total value of all assets (cash, investments, real estate) minus all liabilities and outstanding debts (loans, mortgages, credit balances).
+
+8. Compound Interest:
+Interest calculated on both the initial principal and the accumulated interest from prior compounding periods, enabling exponential asset growth over extended time horizons.

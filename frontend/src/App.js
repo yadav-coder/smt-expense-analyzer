@@ -12,6 +12,7 @@ import CategoryManager from "./components/CategoryManager";
 import CategoryModal from "./components/CategoryModal";
 import Charts from "./components/Charts";
 import Footer from "./components/Footer";
+import AIAssistant from "./pages/AIAssistant";
 
 import "./App.css";
 
@@ -729,200 +730,6 @@ function CategoriesPage({ expensesVersion, onCategoriesChanged }) {
   );
 }
 
-const aiSuggestions = [
-  "How much did I spend this month?",
-  "Where am I spending the most?",
-  "Am I within my budget?",
-  "How can I reduce my expenses?",
-  "Compare this month with last month.",
-  "What is my predicted next month expense?"
-];
-
-function renderInlineMarkdown(text) {
-  return String(text)
-    .split(/(\*\*[^*]+\*\*)/g)
-    .map((part, index) => {
-      if (part.startsWith("**") && part.endsWith("**")) {
-        return <strong key={index}>{part.slice(2, -2)}</strong>;
-      }
-
-      return part;
-    });
-}
-
-function renderMessageContent(content) {
-  const lines = String(content).split("\n");
-  const elements = [];
-  let listItems = [];
-
-  const flushList = () => {
-    if (!listItems.length) return;
-
-    elements.push(
-      <ul key={`list-${elements.length}`}>
-        {listItems.map((item, index) => (
-          <li key={index}>{renderInlineMarkdown(item)}</li>
-        ))}
-      </ul>
-    );
-    listItems = [];
-  };
-
-  lines.forEach((line, index) => {
-    const trimmed = line.trim();
-
-    if (!trimmed) {
-      flushList();
-      return;
-    }
-
-    if (/^[-*]\s+/.test(trimmed)) {
-      listItems.push(trimmed.replace(/^[-*]\s+/, ""));
-      return;
-    }
-
-    flushList();
-
-    if (/^#{1,3}\s+/.test(trimmed)) {
-      elements.push(
-        <strong key={`heading-${index}`} className="message-heading">
-          {renderInlineMarkdown(trimmed.replace(/^#{1,3}\s+/, ""))}
-        </strong>
-      );
-      return;
-    }
-
-    elements.push(<p key={`p-${index}`}>{renderInlineMarkdown(trimmed)}</p>);
-  });
-
-  flushList();
-
-  return elements;
-}
-
-function AiAssistantPage({ budget, prediction }) {
-  const [messages, setMessages] = useState([
-    {
-      role: "assistant",
-      content:
-        "Hi! I'm your Smart Finance AI assistant. I can help you understand your expenses, budget, spending patterns and financial trends."
-    }
-  ]);
-  const [input, setInput] = useState("");
-  const [isThinking, setIsThinking] = useState(false);
-  const chatEndRef = useRef(null);
-
-  useEffect(() => {
-    chatEndRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
-  }, [messages, isThinking]);
-
-  const submitMessage = async (prompt) => {
-    const nextMessage = String(prompt ?? input).trim();
-
-    if (!nextMessage || isThinking) return;
-
-    setMessages((prev) => [...prev, { role: "user", content: nextMessage }]);
-    setInput("");
-    setIsThinking(true);
-
-    try {
-      const result = await sendAiChatMessage({
-        message: nextMessage,
-        monthlyBudget: budget,
-        predictedNextMonthExpense: prediction
-      });
-
-      setMessages((prev) => [
-        ...prev,
-        {
-          role: "assistant",
-          content: result?.message || "Sorry, I couldn't process that request right now. Please try again."
-        }
-      ]);
-    } catch (error) {
-      setMessages((prev) => [
-        ...prev,
-        {
-          role: "assistant",
-          content: "Sorry, I couldn't process that request right now. Please try again."
-        }
-      ]);
-    } finally {
-      setIsThinking(false);
-    }
-  };
-
-  const handleSubmit = (event) => {
-    event.preventDefault();
-    submitMessage();
-  };
-
-  return (
-    <>
-      <PageHeader
-        title="AI Financial Assistant"
-        subtitle="Ask questions about your spending and get personalized financial insights."
-      />
-
-      <section className="ai-assistant-panel">
-        <div className="ai-intro">
-          <div className="ai-avatar">AI</div>
-          <div>
-            <h3>Smart Finance AI</h3>
-            <p>Your personal expense analysis assistant.</p>
-          </div>
-        </div>
-
-        <div className="suggestion-row" aria-label="Suggested questions">
-          {aiSuggestions.map((suggestion) => (
-            <button
-              key={suggestion}
-              type="button"
-              className="suggestion-chip"
-              onClick={() => submitMessage(suggestion)}
-              disabled={isThinking}
-            >
-              {suggestion}
-            </button>
-          ))}
-        </div>
-
-        <div className="chat-window" aria-live="polite">
-          {messages.map((message, index) => (
-            <article key={index} className={`chat-message ${message.role}`}>
-              <span className="chat-avatar">{message.role === "assistant" ? "AI" : "You"}</span>
-              <div className="message-bubble">{renderMessageContent(message.content)}</div>
-            </article>
-          ))}
-
-          {isThinking && (
-            <article className="chat-message assistant">
-              <span className="chat-avatar">AI</span>
-              <div className="message-bubble thinking">
-                Smart Finance AI is thinking<span>.</span><span>.</span><span>.</span>
-              </div>
-            </article>
-          )}
-          <div ref={chatEndRef} />
-        </div>
-
-        <form className="chat-input-row" onSubmit={handleSubmit}>
-          <input
-            type="text"
-            value={input}
-            onChange={(event) => setInput(event.target.value)}
-            placeholder="Ask about your expenses..."
-            maxLength={600}
-            disabled={isThinking}
-          />
-          <button type="submit" disabled={isThinking || !input.trim()}>
-            Send
-          </button>
-        </form>
-      </section>
-    </>
-  );
-}
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -1208,7 +1015,7 @@ function App() {
         />
         <Route
           path="/ai-assistant"
-          element={<AiAssistantPage budget={budget} prediction={prediction} />}
+          element={<AIAssistant budget={budget} prediction={prediction} />}
         />
         <Route path="*" element={<Navigate to="/dashboard" replace />} />
       </Routes>
