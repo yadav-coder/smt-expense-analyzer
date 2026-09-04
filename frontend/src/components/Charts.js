@@ -19,7 +19,7 @@ ChartJS.register(
   Legend
 );
 
-function Charts({ expenses }) {
+function Charts({ expenses, compact = false }) {
   const categoryTotals = expenses.reduce((acc, expense) => {
     const category = expense.category || "Uncategorized";
     const amount = Number(expense.amount);
@@ -66,7 +66,7 @@ function Charts({ expenses }) {
   };
 
   return (
-    <div className="charts-panel">
+    <div className={`charts-panel ${compact ? "compact" : ""}`}>
       {hasData ? (
         <>
           <div className="chart-block">
@@ -76,14 +76,14 @@ function Charts({ expenses }) {
             </div>
           </div>
 
-          <div className="chart-block">
+          {!compact && <div className="chart-block">
             <h3>Expense Trend</h3>
             <div className="chart-card">
               <Bar data={barData} />
             </div>
-          </div>
+          </div>}
 
-          <div className="category-legend">
+          {!compact && <div className="category-legend">
             {labels.map((label, index) => (
               <div className="legend-item" key={label}>
                 <span
@@ -93,10 +93,10 @@ function Charts({ expenses }) {
                 <span>{label}: Rs.{categoryTotals[label].toLocaleString()}</span>
               </div>
             ))}
-          </div>
+          </div>}
         </>
       ) : (
-        <div className="chart-card empty-state">Charts will appear after you add expenses.</div>
+        <div className="chart-card empty-state">No data available</div>
       )}
     </div>
   );

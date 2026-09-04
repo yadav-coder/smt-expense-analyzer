@@ -42,33 +42,45 @@ function AddExpense({ onAddExpense }) {
     <form className="expense-form" onSubmit={submitHandler}>
       <h3>Add Expense</h3>
 
-      <input
-        placeholder="Title"
-        value={title}
-        onChange={(e) => setTitle(e.target.value)}
-      />
+      <label>
+        Title
+        <input
+          placeholder="Title"
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+        />
+      </label>
 
-      <input
-        placeholder="Amount"
-        type="number"
-        min="1"
-        step="0.01"
-        value={amount}
-        onChange={(e) => setAmount(e.target.value)}
-      />
+      <label>
+        Amount
+        <input
+          placeholder="Amount"
+          type="number"
+          min="1"
+          step="0.01"
+          value={amount}
+          onChange={(e) => setAmount(e.target.value)}
+        />
+      </label>
 
-      <select value={category} onChange={(e) => setCategory(e.target.value)}>
-        <option value="">Auto category</option>
-        {categories.map((cat) => (
-          <option key={cat} value={cat}>{cat}</option>
-        ))}
-      </select>
+      <label>
+        Category
+        <select value={category} onChange={(e) => setCategory(e.target.value)}>
+          <option value="">Auto category</option>
+          {categories.map((cat) => (
+            <option key={cat} value={cat}>{cat}</option>
+          ))}
+        </select>
+      </label>
 
-      <input
-        type="date"
-        value={date}
-        onChange={(e) => setDate(e.target.value)}
-      />
+      <label>
+        Date
+        <input
+          type="date"
+          value={date}
+          onChange={(e) => setDate(e.target.value)}
+        />
+      </label>
 
       <button type="submit">Add</button>
     </form>

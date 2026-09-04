@@ -1,40 +1,59 @@
 import { useEffect, useRef, useState } from "react";
+import {
+  Navigate,
+  NavLink,
+  Route,
+  Routes,
+  useLocation,
+  useNavigate
+} from "react-router-dom";
+import AddExpense from "./components/AddExpense";
 import CategoryManager from "./components/CategoryManager";
 import CategoryModal from "./components/CategoryModal";
-
 import Charts from "./components/Charts";
 import Footer from "./components/Footer";
-import Header from "./components/Header";
 
 import "./App.css";
-import AddExpense from "./components/AddExpense";
 
 import {
-    addExpense,
-    deleteExpense,
-    getExpenses,
-    getPrediction,
-    loginUser,
-    registerUser,
-    setAuthToken,
-    updateExpense
+  addExpense,
+  deleteExpense,
+  getExpenses,
+  getPrediction,
+  loginUser,
+  registerUser,
+  setAuthToken,
+  updateExpense
 } from "./services/api";
 
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+
+const navItems = [
+  { path: "/dashboard", label: "Dashboard", icon: "D" },
+  { path: "/expenses", label: "Expenses", icon: "E" },
+  { path: "/add-expense", label: "Add Expense", icon: "+" },
+  { path: "/budget", label: "Budget", icon: "B" },
+  { path: "/charts", label: "Charts", icon: "C" },
+  { path: "/categories", label: "Categories", icon: "G" }
+];
+
+const pageTitles = {
+  "/dashboard": "Dashboard",
+  "/expenses": "Expenses",
+  "/add-expense": "Add Expense",
+  "/budget": "Budget",
+  "/charts": "Charts",
+  "/categories": "Categories"
+};
 
 function calculateLocalPrediction(expenses) {
   const amounts = expenses
     .map((expense) => Number(expense.amount))
     .filter((amount) => Number.isFinite(amount));
 
-  if (amounts.length === 0) {
-    return 0;
-  }
-
-  if (amounts.length === 1) {
-    return amounts[0];
-  }
+  if (amounts.length === 0) return 0;
+  if (amounts.length === 1) return amounts[0];
 
   const points = amounts.map((amount, index) => ({ x: index, y: amount }));
   const count = points.length;
@@ -42,7 +61,6 @@ function calculateLocalPrediction(expenses) {
   const sumY = points.reduce((sum, point) => sum + point.y, 0);
   const sumXY = points.reduce((sum, point) => sum + point.x * point.y, 0);
   const sumXX = points.reduce((sum, point) => sum + point.x * point.x, 0);
-
   const denominator = count * sumXX - sumX * sumX;
 
   if (denominator === 0) {
@@ -72,22 +90,32 @@ function formatCurrency(value) {
   return `Rs.${Number.isFinite(amount) ? amount.toLocaleString() : "0"}`;
 }
 
-function AuthPage({ onAuth }) {
-  const [activeTab, setActiveTab] = useState("login");
+function getInitials(user) {
+  return (user?.name || "User")
+    .split(" ")
+    .map((part) => part.charAt(0))
+    .join("")
+    .slice(0, 2)
+    .toUpperCase();
+}
+
+function AuthPage({ mode, onAuth }) {
+  const navigate = useNavigate();
   const [form, setForm] = useState({
     email: "",
     password: "",
     name: "",
-    confirmPassword: "",
+    confirmPassword: ""
   });
   const [errors, setErrors] = useState({});
   const [authMessage, setAuthMessage] = useState("");
   const [authLoading, setAuthLoading] = useState(false);
+  const isRegister = mode === "register";
 
   const validateForm = () => {
     const nextErrors = {};
 
-    if (activeTab === "register" && !form.name.trim()) {
+    if (isRegister && !form.name.trim()) {
       nextErrors.name = "Full name is required.";
     }
 
@@ -99,7 +127,7 @@ function AuthPage({ onAuth }) {
       nextErrors.password = "Password must be at least 8 characters.";
     }
 
-    if (activeTab === "register" && form.confirmPassword !== form.password) {
+    if (isRegister && form.confirmPassword !== form.password) {
       nextErrors.confirmPassword = "Passwords do not match.";
     }
 
@@ -113,24 +141,15 @@ function AuthPage({ onAuth }) {
     setAuthMessage("");
   };
 
-  const switchTab = (tab) => {
-    setActiveTab(tab);
-    setErrors({});
-    setAuthMessage("");
-  };
-
   const submitAuth = async (event) => {
     event.preventDefault();
-
-    if (!validateForm()) {
-      return;
-    }
+    if (!validateForm()) return;
 
     try {
       setAuthLoading(true);
       setAuthMessage("");
 
-      if (activeTab === "login") {
+      if (!isRegister) {
         const result = await loginUser({
           email: form.email,
           password: form.password
@@ -138,6 +157,7 @@ function AuthPage({ onAuth }) {
 
         setAuthToken(result.token);
         onAuth(result.user);
+        navigate("/dashboard", { replace: true });
         return;
       }
 
@@ -148,13 +168,14 @@ function AuthPage({ onAuth }) {
       });
 
       setAuthMessage(result.message || "Registration successful. Please login now.");
-      setActiveTab("login");
+      toast.success(result.message || "Registration successful. Please login now.");
       setForm((prev) => ({
         ...prev,
         name: "",
         confirmPassword: "",
         password: ""
       }));
+      navigate("/login", { replace: true });
     } catch (error) {
       setAuthMessage(error.message);
     } finally {
@@ -164,104 +185,40 @@ function AuthPage({ onAuth }) {
 
   return (
     <main className="auth-screen">
-      <div className="auth-background" aria-hidden="true">
-        <div className="finance-grid">
-          <div className="finance-widget widget-income">
-            <span className="widget-icon">+</span>
-            <div>
-              <small>Monthly savings</small>
-              <strong>Rs.12,450</strong>
-            </div>
-          </div>
-          <div className="finance-widget widget-spend">
-            <span className="widget-icon">-</span>
-            <div>
-              <small>Card spend</small>
-              <strong>Rs.34,890</strong>
-            </div>
-          </div>
-          <div className="floating-chart">
-            <span style={{ height: "42%" }} />
-            <span style={{ height: "68%" }} />
-            <span style={{ height: "54%" }} />
-            <span style={{ height: "82%" }} />
-            <span style={{ height: "61%" }} />
-          </div>
-          <div className="pattern-card">
-            <span />
-            <span />
-            <span />
-          </div>
-        </div>
-      </div>
-
       <header className="auth-brand">
         <div className="brand-mark">
           <span />
         </div>
         <div>
           <h1>Smart Expense Analyzer</h1>
-          <p>Personal finance intelligence</p>
+          <p>Track. Analyze. Predict.</p>
         </div>
       </header>
 
       <section className="auth-layout" aria-label="Authentication">
-        <aside className="auth-insight-panel" aria-label="Expense insights preview">
-          <div className="insight-header">
-            <span>Live budget snapshot</span>
-            <strong>Sep 2026</strong>
-          </div>
-          <div className="insight-total">
-            <small>Total tracked</small>
-            <strong>Rs.48,320</strong>
-          </div>
-          <div className="insight-bars">
-            <div>
-              <span>Food</span>
-              <i style={{ width: "72%" }} />
-            </div>
-            <div>
-              <span>Travel</span>
-              <i style={{ width: "48%" }} />
-            </div>
-            <div>
-              <span>Rent</span>
-              <i style={{ width: "86%" }} />
-            </div>
-          </div>
-          <div className="insight-footer">
-            <span>Projected next month</span>
-            <strong>Rs.51,100</strong>
-          </div>
+        <aside className="auth-copy-panel">
+          <span className="eyebrow">Secure Access</span>
+          <h2>Manage your expense workspace.</h2>
+          <p>Sign in to view your dashboard, expenses, budgets, charts, and categories.</p>
         </aside>
 
         <div className="auth-card">
           <div className="auth-tabs" role="tablist" aria-label="Authentication tabs">
-            <button
-              className={activeTab === "login" ? "active" : ""}
-              onClick={() => switchTab("login")}
-              role="tab"
-              aria-selected={activeTab === "login"}
-            >
+            <NavLink to="/login" className={!isRegister ? "active" : ""}>
               Login
-            </button>
-            <button
-              className={activeTab === "register" ? "active" : ""}
-              onClick={() => switchTab("register")}
-              role="tab"
-              aria-selected={activeTab === "register"}
-            >
+            </NavLink>
+            <NavLink to="/register" className={isRegister ? "active" : ""}>
               Register
-            </button>
+            </NavLink>
           </div>
 
           <div className="auth-card-header">
-            <h2>{activeTab === "login" ? "Welcome back" : "Create your account"}</h2>
-            <p>{activeTab === "login" ? "Sign in to continue analyzing your spending." : "Start tracking expenses with smarter insights."}</p>
+            <h2>{isRegister ? "Create your account" : "Welcome back"}</h2>
+            <p>{isRegister ? "Register to start using your analyzer." : "Sign in to continue."}</p>
           </div>
 
           <form className="auth-form" noValidate onSubmit={submitAuth}>
-            {activeTab === "register" && (
+            {isRegister && (
               <label>
                 Full Name
                 <input
@@ -302,7 +259,7 @@ function AuthPage({ onAuth }) {
               {errors.password && <small className="field-error">{errors.password}</small>}
             </label>
 
-            {activeTab === "register" && (
+            {isRegister && (
               <label>
                 Confirm Password
                 <input
@@ -317,16 +274,6 @@ function AuthPage({ onAuth }) {
               </label>
             )}
 
-            {activeTab === "login" && (
-              <div className="auth-options">
-                <label className="remember-row">
-                  <input type="checkbox" defaultChecked />
-                  <span>Remember me</span>
-                </label>
-                <a href="#forgot-password">Forgot Password?</a>
-              </div>
-            )}
-
             {authMessage && (
               <p className={authMessage.toLowerCase().includes("successful") ? "auth-status success" : "auth-status error"}>
                 {authMessage}
@@ -334,19 +281,448 @@ function AuthPage({ onAuth }) {
             )}
 
             <button className="auth-submit" type="submit" disabled={authLoading}>
-              {authLoading ? "Please wait..." : activeTab === "login" ? "Login" : "Register"}
+              {authLoading ? "Please wait..." : isRegister ? "Register" : "Login"}
             </button>
           </form>
 
           <p className="auth-switch">
-            {activeTab === "login" ? "Don't have an account?" : "Already have an account?"}
-            <button type="button" onClick={() => switchTab(activeTab === "login" ? "register" : "login")}>
-              {activeTab === "login" ? "Register" : "Login"}
-            </button>
+            {isRegister ? "Already have an account?" : "Don't have an account?"}
+            <NavLink to={isRegister ? "/login" : "/register"}>
+              {isRegister ? "Login" : "Register"}
+            </NavLink>
           </p>
         </div>
       </section>
     </main>
+  );
+}
+
+function ProtectedRoute({ isAuthenticated, children }) {
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace />;
+  }
+
+  return children;
+}
+
+function PublicOnlyRoute({ isAuthenticated, children }) {
+  if (isAuthenticated) {
+    return <Navigate to="/dashboard" replace />;
+  }
+
+  return children;
+}
+
+function AppShell({
+  children,
+  currentUser,
+  isSidebarOpen,
+  onLogout,
+  onMenuClose,
+  onMenuToggle,
+  onToggleTheme,
+  theme
+}) {
+  const location = useLocation();
+  const title = pageTitles[location.pathname] || "Dashboard";
+  const initials = getInitials(currentUser);
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const profileMenuRef = useRef(null);
+
+  useEffect(() => {
+    if (!isProfileOpen) return;
+
+    const handlePointerDown = (event) => {
+      if (profileMenuRef.current && !profileMenuRef.current.contains(event.target)) {
+        setIsProfileOpen(false);
+      }
+    };
+
+    const handleKeyDown = (event) => {
+      if (event.key === "Escape") {
+        setIsProfileOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handlePointerDown);
+    document.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      document.removeEventListener("mousedown", handlePointerDown);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [isProfileOpen]);
+
+  const handleProfileLogout = () => {
+    setIsProfileOpen(false);
+    onLogout();
+  };
+
+  return (
+    <div className="app-shell">
+      <div
+        className={`mobile-overlay ${isSidebarOpen ? "active" : ""}`}
+        onClick={onMenuClose}
+        aria-hidden={!isSidebarOpen}
+      />
+
+      <aside className={`app-sidebar ${isSidebarOpen ? "open" : ""}`}>
+        <div className="sidebar-brand">
+          <div className="brand-mark small">
+            <span />
+          </div>
+          <strong>Smart Expense<br />Analyzer</strong>
+        </div>
+
+        <nav className="sidebar-nav" aria-label="Primary navigation">
+          {navItems.map((item) => (
+            <NavLink key={item.path} to={item.path} onClick={onMenuClose}>
+              <span className="nav-icon">{item.icon}</span>
+              <span>{item.label}</span>
+            </NavLink>
+          ))}
+        </nav>
+      </aside>
+
+      <div className="app-main">
+        <header className="top-header">
+          <button
+            type="button"
+            className="menu-button"
+            aria-label={isSidebarOpen ? "Close navigation menu" : "Open navigation menu"}
+            aria-expanded={isSidebarOpen}
+            onClick={onMenuToggle}
+          >
+            <span />
+            <span />
+            <span />
+          </button>
+
+          <h1>{title}</h1>
+
+          <div className="header-actions">
+            <button type="button" className="theme-toggle" onClick={onToggleTheme}>
+              {theme === "light" ? "Dark" : "Light"}
+            </button>
+
+            <div className="profile-menu" ref={profileMenuRef}>
+              <button
+                type="button"
+                className="profile-button"
+                aria-haspopup="menu"
+                aria-expanded={isProfileOpen}
+                onClick={() => setIsProfileOpen((prev) => !prev)}
+              >
+                <span className="avatar">{initials}</span>
+                <span className="profile-name">{currentUser?.name || "User"}</span>
+                <span className="profile-chevron" aria-hidden="true" />
+              </button>
+
+              {isProfileOpen && (
+                <div className="profile-dropdown" role="menu">
+                  <div className="profile-summary">
+                    <span className="avatar">{initials}</span>
+                    <div>
+                      <strong>{currentUser?.name || "User"}</strong>
+                      <small>{currentUser?.email || "Signed in"}</small>
+                    </div>
+                  </div>
+
+                  <div className="profile-dropdown-section">
+                    <button type="button" className="dropdown-item" onClick={onToggleTheme} role="menuitem">
+                      {theme === "light" ? "Dark Mode" : "Light Mode"}
+                    </button>
+                  </div>
+
+                  <div className="profile-dropdown-section">
+                    <button type="button" className="dropdown-item logout-item" onClick={handleProfileLogout} role="menuitem">
+                      Logout
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </header>
+
+        <main className="page-content">{children}</main>
+        <Footer />
+      </div>
+    </div>
+  );
+}
+
+function PageHeader({ title, subtitle, action }) {
+  return (
+    <div className="page-header">
+      <div>
+        <h2>{title}</h2>
+        {subtitle && <p>{subtitle}</p>}
+      </div>
+      {action}
+    </div>
+  );
+}
+
+function StatCard({ label, value, detail }) {
+  return (
+    <article className="stat-card">
+      <span>{label}</span>
+      <strong>{value}</strong>
+      {detail && <p>{detail}</p>}
+    </article>
+  );
+}
+
+function TransactionList({
+  expenses,
+  editingExpense,
+  editForm,
+  loading,
+  onCancelEdit,
+  onDelete,
+  onEditFieldChange,
+  onSaveEdit,
+  onStartEdit,
+  short = false
+}) {
+  if (loading) {
+    return <div className="state-card">Loading expenses...</div>;
+  }
+
+  if (!expenses.length) {
+    return <div className="state-card">No expenses yet.</div>;
+  }
+
+  const visibleExpenses = short ? expenses.slice(0, 5) : expenses;
+
+  return (
+    <div className={`expense-list ${short ? "short-list" : ""}`}>
+      <div className="expense-list-head">
+        <span>Title</span>
+        <span>Category</span>
+        <span>Date</span>
+        <span>Amount</span>
+        {!short && <span>Actions</span>}
+      </div>
+
+      {visibleExpenses.map((exp) => (
+        <div key={exp._id} className="expense-row">
+          {editingExpense === exp._id ? (
+            <div className="expense-edit-row">
+              <input
+                value={editForm.title}
+                onChange={(e) => onEditFieldChange("title", e.target.value)}
+                aria-label="Expense title"
+              />
+              <input
+                value={editForm.category}
+                onChange={(e) => onEditFieldChange("category", e.target.value)}
+                aria-label="Expense category"
+              />
+              <input
+                type="number"
+                min="1"
+                value={editForm.amount}
+                onChange={(e) => onEditFieldChange("amount", e.target.value)}
+                aria-label="Expense amount"
+              />
+              <div className="row-actions">
+                <button onClick={() => onSaveEdit(exp._id)}>Save</button>
+                <button className="secondary-btn" onClick={onCancelEdit}>Cancel</button>
+              </div>
+            </div>
+          ) : (
+            <>
+              <div className="expense-title">
+                <strong>{exp.title}</strong>
+                <small>{exp.category || "Other"}</small>
+              </div>
+              <span data-label="Category">{exp.category || "Other"}</span>
+              <span data-label="Date">{exp.date ? new Date(exp.date).toLocaleDateString() : "No date"}</span>
+              <strong data-label="Amount">{formatCurrency(exp.amount)}</strong>
+              {!short && (
+                <div className="row-actions">
+                  <button onClick={() => onStartEdit(exp)}>Edit</button>
+                  <button className="delete-btn" onClick={() => onDelete(exp._id, exp.title)}>
+                    Delete
+                  </button>
+                </div>
+              )}
+            </>
+          )}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function DashboardPage({
+  budgetRemaining,
+  budgetUsedPercent,
+  budgetValue,
+  categoryCount,
+  expenses,
+  hasBudget,
+  loading,
+  prediction,
+  predictionLoading,
+  totalExpense,
+  user
+}) {
+  const latestTransactions = [...expenses].slice(0, 5);
+
+  return (
+    <>
+      <PageHeader
+        title={`Welcome back, ${user?.name || "User"}`}
+        subtitle="Here's your spending overview."
+      />
+
+      <section className="stat-grid">
+        <StatCard
+          label="Insights"
+          value={`${categoryCount} categories`}
+          detail={expenses.length === 1 ? "1 expense item" : `${expenses.length} expense items`}
+        />
+        <StatCard
+          label="Total Balance"
+          value={formatCurrency(hasBudget ? budgetValue : 0)}
+          detail={hasBudget ? `Remaining ${formatCurrency(budgetRemaining)}` : "Budget target"}
+        />
+        <StatCard
+          label="Spent This Month"
+          value={formatCurrency(totalExpense)}
+          detail={hasBudget ? `${budgetUsedPercent}% of budget` : "No budget set"}
+        />
+        <StatCard
+          label="Prediction"
+          value={predictionLoading ? "Calculating..." : formatCurrency(prediction)}
+          detail="Projected next cycle"
+        />
+      </section>
+
+      <section className="dashboard-grid">
+        <div className="panel">
+          <div className="panel-header">
+            <h3>Category Spending</h3>
+          </div>
+          <Charts expenses={expenses} compact />
+        </div>
+
+        <div className="panel">
+          <div className="panel-header">
+            <h3>Latest Transactions</h3>
+            <NavLink className="text-button" to="/expenses">View All Expenses</NavLink>
+          </div>
+          <TransactionList expenses={latestTransactions} loading={loading} short />
+        </div>
+      </section>
+    </>
+  );
+}
+
+function ExpensesPage(props) {
+  return (
+    <>
+      <PageHeader
+        title="Expenses"
+        subtitle="View and manage your expenses."
+        action={<NavLink className="primary-link" to="/add-expense">+ Add Expense</NavLink>}
+      />
+      <section className="panel">
+        <TransactionList {...props} />
+      </section>
+      <div className="expense-totals">
+        <StatCard label="Total Expense" value={formatCurrency(props.totalExpense)} />
+        <StatCard
+          label="Predicted Next Month Expense"
+          value={props.predictionLoading ? "Calculating..." : formatCurrency(props.prediction)}
+        />
+      </div>
+    </>
+  );
+}
+
+function AddExpensePage({ onAddExpense }) {
+  return (
+    <>
+      <PageHeader
+        title="Add Expense"
+        subtitle="Record a new expense with the existing fields."
+        action={<NavLink className="secondary-link" to="/expenses">Back to Expenses</NavLink>}
+      />
+      <section className="form-panel">
+        <AddExpense onAddExpense={onAddExpense} />
+      </section>
+    </>
+  );
+}
+
+function BudgetPage({
+  budget,
+  budgetRemaining,
+  budgetUsedPercent,
+  hasBudget,
+  onBudgetChange,
+  totalExpense
+}) {
+  const clampedPercent = Math.min(100, budgetUsedPercent);
+
+  return (
+    <>
+      <PageHeader title="Budget" subtitle="Set and review your monthly budget." />
+      <section className="budget-layout">
+        <div className="form-panel">
+          <h3>Set Monthly Budget</h3>
+          <label>
+            Monthly Budget
+            <input
+              type="number"
+              placeholder="Enter Budget"
+              value={budget}
+              onChange={(e) => onBudgetChange(e.target.value)}
+            />
+          </label>
+        </div>
+
+        <div className="panel budget-card">
+          <StatCard label="Monthly Budget" value={formatCurrency(hasBudget ? budget : 0)} />
+          <StatCard label="Current Spending" value={formatCurrency(totalExpense)} />
+          <StatCard
+            label="Remaining"
+            value={hasBudget ? formatCurrency(budgetRemaining) : "No data available"}
+          />
+          <div className="budget-progress" aria-label="Budget usage">
+            <span style={{ width: `${clampedPercent}%` }} />
+          </div>
+          <p>{hasBudget ? `${budgetUsedPercent}% used` : "No budget set."}</p>
+        </div>
+      </section>
+    </>
+  );
+}
+
+function ChartsPage({ expenses }) {
+  return (
+    <>
+      <PageHeader title="Charts" subtitle="Review your existing expense charts." />
+      <section className="panel">
+        <Charts expenses={expenses} />
+      </section>
+    </>
+  );
+}
+
+function CategoriesPage({ expensesVersion, onCategoriesChanged }) {
+  return (
+    <>
+      <PageHeader title="Categories" subtitle="Rename or delete existing categories." />
+      <CategoryManager
+        expensesVersion={expensesVersion}
+        onCategoriesChanged={onCategoriesChanged}
+      />
+    </>
   );
 }
 
@@ -378,39 +754,10 @@ function App() {
   const hasBudget = Number.isFinite(budgetValue) && budgetValue > 0;
   const budgetRemaining = hasBudget ? Math.max(0, budgetValue - totalExpense) : 0;
   const budgetUsedPercent = hasBudget ? Number(((totalExpense / budgetValue) * 100).toFixed(1)) : 0;
-  const latestTransactions = [...expenses].slice(0, 5);
-
-  const topCategories = Object.entries(categoryTotals)
-    .sort(([, a], [, b]) => b - a)
-    .slice(0, 4)
-    .map(([category, amount]) => ({ category, amount }));
-
-  const categoryGradient = (category, index) => {
-    const map = {
-      Rent: ["#0ea5e9", "#38bdf8"],
-      Transport: ["#a855f7", "#c084fc"],
-      Health: ["#22c55e", "#4ade80"],
-      Groceries: ["#f97316", "#fbbf24"],
-    };
-
-    const fallback = [
-      ["#6366f1", "#8b5cf6"],
-      ["#22c55e", "#14b8a6"],
-      ["#f43f5e", "#fb7185"],
-      ["#f59e0b", "#fbbf24"],
-    ];
-
-    const colors = map[category] || fallback[index % fallback.length];
-    return `linear-gradient(135deg, ${colors[0]}, ${colors[1]})`;
-  };
 
   useEffect(() => {
     document.body.classList.toggle("theme-dark", theme === "dark");
   }, [theme]);
-
-  const toggleTheme = () => {
-    setTheme((prev) => (prev === "light" ? "dark" : "light"));
-  };
 
   useEffect(() => {
     const refreshPrediction = async () => {
@@ -446,7 +793,7 @@ function App() {
       const data = await getExpenses();
       setExpenses(data || []);
     } catch (error) {
-      toast.error("Failed to load expenses");
+      toast.error("Unable to load data.");
     } finally {
       setLoading(false);
     }
@@ -462,7 +809,7 @@ function App() {
         return;
       }
 
-      toast.success("Expense Added");
+      toast.success("Expense added successfully.");
       await loadExpenses();
     } catch (error) {
       toast.error(error.message || "Failed to add expense");
@@ -476,12 +823,12 @@ function App() {
       await addExpense({
         title: pendingExpense.title,
         amount: pendingExpense.amount,
-        category,
+        category
       });
 
       setShowModal(false);
       setPendingExpense(null);
-      toast.success("Category Saved");
+      toast.success("Category saved successfully.");
       await loadExpenses();
     } catch (error) {
       toast.error(error.message || "Failed to save category");
@@ -491,7 +838,7 @@ function App() {
   const deleteExpenseHandler = async (id, title) => {
     try {
       await deleteExpense(id);
-      toast.info(`${title} deleted`);
+      toast.info(`${title} deleted successfully.`);
       await loadExpenses();
     } catch (error) {
       toast.error(error.message || `Failed to delete ${title}`);
@@ -520,7 +867,7 @@ function App() {
         category: editForm.category
       });
 
-      toast.info("Expense Updated");
+      toast.info("Expense updated successfully.");
       cancelEditExpense();
       await loadExpenses();
     } catch (error) {
@@ -586,223 +933,115 @@ function App() {
     setIsSidebarOpen(false);
   };
 
-  if (!isAuthenticated) {
-    return <AuthPage onAuth={handleAuth} />;
-  }
+  const appRoutes = (
+    <AppShell
+      currentUser={currentUser}
+      isSidebarOpen={isSidebarOpen}
+      onLogout={handleLogout}
+      onMenuClose={() => setIsSidebarOpen(false)}
+      onMenuToggle={() => setIsSidebarOpen((prev) => !prev)}
+      onToggleTheme={() => setTheme((prev) => (prev === "light" ? "dark" : "light"))}
+      theme={theme}
+    >
+      <Routes>
+        <Route
+          path="/dashboard"
+          element={
+            <DashboardPage
+              budgetRemaining={budgetRemaining}
+              budgetUsedPercent={budgetUsedPercent}
+              budgetValue={budgetValue}
+              categoryCount={categoryCount}
+              expenses={expenses}
+              hasBudget={hasBudget}
+              loading={loading}
+              prediction={prediction}
+              predictionLoading={predictionLoading}
+              totalExpense={totalExpense}
+              user={currentUser}
+            />
+          }
+        />
+        <Route
+          path="/expenses"
+          element={
+            <ExpensesPage
+              editForm={editForm}
+              editingExpense={editingExpense}
+              expenses={expenses}
+              loading={loading}
+              onCancelEdit={cancelEditExpense}
+              onDelete={deleteExpenseHandler}
+              onEditFieldChange={(field, value) => setEditForm((prev) => ({ ...prev, [field]: value }))}
+              onSaveEdit={editExpenseHandler}
+              onStartEdit={startEditExpense}
+              prediction={prediction}
+              predictionLoading={predictionLoading}
+              totalExpense={totalExpense}
+            />
+          }
+        />
+        <Route path="/add-expense" element={<AddExpensePage onAddExpense={addExpenseHandler} />} />
+        <Route
+          path="/budget"
+          element={
+            <BudgetPage
+              budget={budget}
+              budgetRemaining={budgetRemaining}
+              budgetUsedPercent={budgetUsedPercent}
+              hasBudget={hasBudget}
+              onBudgetChange={(value) => {
+                setBudget(value);
+                lastAlert.current = "";
+              }}
+              totalExpense={totalExpense}
+            />
+          }
+        />
+        <Route path="/charts" element={<ChartsPage expenses={expenses} />} />
+        <Route
+          path="/categories"
+          element={
+            <CategoriesPage
+              expensesVersion={expenses.length}
+              onCategoriesChanged={loadExpenses}
+            />
+          }
+        />
+        <Route path="*" element={<Navigate to="/dashboard" replace />} />
+      </Routes>
+    </AppShell>
+  );
 
   return (
-    <div className="container">
-      <ToastContainer />
-
-      <Header
-        isSidebarOpen={isSidebarOpen}
-        onMenuToggle={() => setIsSidebarOpen((prev) => !prev)}
-        onMenuClose={() => setIsSidebarOpen(false)}
-        user={currentUser}
-        isAuthenticated={isAuthenticated}
-        onLogout={handleLogout}
-      />
-
-      <section id="dashboard" className="dashboard-panel">
-        <div className="dashboard-left">
-          <div className="dashboard-top">
-            <div>
-              <p className="dashboard-label">Welcome back, Suraj!</p>
-              <h2>Spending Overview</h2>
-              <p className="dashboard-subtitle">
-                Your cards, totals, and trends in one place.
-              </p>
-            </div>
-
-            <button className="theme-toggle" onClick={toggleTheme}>
-              {theme === "light" ? "Dark Mode" : "Light Mode"}
-            </button>
-          </div>
-
-          <div className="summary-grid">
-            <div className="summary-card dashboard-card">
-              <span className="card-title">Insights</span>
-              <p className="summary-value">{categoryCount} categories</p>
-              <p className="summary-detail">
-                {expenses.length === 1 ? "You used 1 expense item." : `You used ${expenses.length} expense items.`}
-              </p>
-            </div>
-
-            <div className="summary-card dashboard-card highlight-card">
-              <span className="card-title">Total balance</span>
-              <p className="summary-value">{formatCurrency(hasBudget ? budgetValue : 0)}</p>
-              <p className="summary-detail">
-                {hasBudget ? `Remaining ${formatCurrency(budgetRemaining)}` : "Budget target"}
-              </p>
-            </div>
-
-            <div className="summary-card dashboard-card accent-card">
-              <span className="card-title">Spent this month</span>
-              <p className="summary-value">{formatCurrency(totalExpense)}</p>
-              <p className="summary-detail">{budgetUsedPercent}% of budget</p>
-            </div>
-
-            <div className="summary-card dashboard-card">
-              <span className="card-title">Prediction</span>
-              <p className="summary-value">
-                {predictionLoading ? "Calculating..." : formatCurrency(prediction)}
-              </p>
-              <p className="summary-detail">Projected next cycle</p>
-            </div>
-          </div>
-        </div>
-
-        <aside className="dashboard-right">
-          <div className="credit-card">
-            <div className="card-top">
-              <span>My cards</span>
-              <span className="card-chip" />
-            </div>
-            <div className="card-number">5264 0984 1234 4321</div>
-            <div className="card-details">
-              <div>
-                <small>Card holder</small>
-                <strong>Suraj Yadav</strong>
-              </div>
-              <div>
-                <small>Expiry</small>
-                <strong>09/27</strong>
-              </div>
-            </div>
-          </div>
-
-          <div className="mini-card-grid">
-            {topCategories.length > 0 ? (
-              topCategories.map((item, index) => (
-                <div
-                  key={item.category}
-                  className="mini-card"
-                  style={{ background: categoryGradient(item.category, index) }}
-                >
-                  <span>{item.category}</span>
-                  <strong>{formatCurrency(item.amount)}</strong>
-                </div>
-              ))
-            ) : (
-              <div className="mini-card placeholder-card">
-                <span>No categories yet</span>
-                <strong>Add an expense to see category cards</strong>
-              </div>
-            )}
-          </div>
-
-          <div className="transactions-card">
-            <div className="transactions-header">
-              <h4>Latest transactions</h4>
-              <a className="text-button" href="#expense-list">Show more</a>
-            </div>
-            <ul className="transactions-list">
-              {latestTransactions.length > 0 ? (
-                latestTransactions.map((exp) => (
-                  <li key={exp._id}>
-                    <span>{exp.title}</span>
-                    <strong>{formatCurrency(exp.amount)}</strong>
-                  </li>
-                ))
-              ) : (
-                <li className="empty-row">No transactions yet</li>
-              )}
-            </ul>
-          </div>
-        </aside>
-      </section>
-
-      <section id="add-expense">
-        <AddExpense onAddExpense={addExpenseHandler} />
-      </section>
-
-      <section id="budget">
-        <h3>Set Monthly Budget</h3>
-
-        <input
-          type="number"
-          placeholder="Enter Budget"
-          value={budget}
-          onChange={(e) => {
-            setBudget(e.target.value);
-            lastAlert.current = "";
-          }}
+    <>
+      <ToastContainer position="top-right" />
+      <Routes>
+        <Route
+          path="/login"
+          element={
+            <PublicOnlyRoute isAuthenticated={isAuthenticated}>
+              <AuthPage mode="login" onAuth={handleAuth} />
+            </PublicOnlyRoute>
+          }
         />
-      </section>
-
-      <section id="expense-list">
-        <h3>Expense List</h3>
-
-        {loading && <p>Loading...</p>}
-
-        <ul>
-          {!loading && expenses.length === 0 && (
-            <li className="empty-state">No expenses yet. Add your first expense above.</li>
-          )}
-
-          {expenses.map((exp) => (
-            <li key={exp._id} className="expense-item">
-              {editingExpense === exp._id ? (
-                <div className="edit-form">
-                  <input
-                    value={editForm.title}
-                    onChange={(e) => setEditForm((prev) => ({ ...prev, title: e.target.value }))}
-                    aria-label="Expense title"
-                  />
-                  <input
-                    type="number"
-                    min="1"
-                    value={editForm.amount}
-                    onChange={(e) => setEditForm((prev) => ({ ...prev, amount: e.target.value }))}
-                    aria-label="Expense amount"
-                  />
-                  <input
-                    value={editForm.category}
-                    onChange={(e) => setEditForm((prev) => ({ ...prev, category: e.target.value }))}
-                    aria-label="Expense category"
-                  />
-                  <div className="row-actions">
-                    <button onClick={() => editExpenseHandler(exp._id)}>Save</button>
-                    <button className="secondary-btn" onClick={cancelEditExpense}>Cancel</button>
-                  </div>
-                </div>
-              ) : (
-                <>
-                  <span className="expense-copy">
-                    <strong>{exp.title}</strong>
-                    <small>{exp.category || "Other"}</small>
-                  </span>
-
-                  <div className="expense-actions">
-                    <strong>{formatCurrency(exp.amount)}</strong>
-                    <button onClick={() => startEditExpense(exp)}>
-                      Edit
-                    </button>
-
-                    <button
-                      className="delete-btn"
-                      onClick={() => deleteExpenseHandler(exp._id, exp.title)}
-                    >
-                      Delete
-                    </button>
-                  </div>
-                </>
-              )}
-            </li>
-          ))}
-        </ul>
-
-        <div className="expense-footer-row">
-          <h3>Total Expense: {formatCurrency(totalExpense)}</h3>
-          <h3>
-            Predicted Next Month Expense: {predictionLoading ? "Calculating..." : formatCurrency(prediction)}
-          </h3>
-        </div>
-      </section>
-
-      <section id="charts">
-        <Charts expenses={expenses} />
-      </section>
+        <Route
+          path="/register"
+          element={
+            <PublicOnlyRoute isAuthenticated={isAuthenticated}>
+              <AuthPage mode="register" onAuth={handleAuth} />
+            </PublicOnlyRoute>
+          }
+        />
+        <Route
+          path="/*"
+          element={
+            <ProtectedRoute isAuthenticated={isAuthenticated}>
+              {appRoutes}
+            </ProtectedRoute>
+          }
+        />
+      </Routes>
 
       {showModal && (
         <CategoryModal
@@ -811,14 +1050,7 @@ function App() {
           onClose={() => setShowModal(false)}
         />
       )}
-
-      <CategoryManager
-        expensesVersion={expenses.length}
-        onCategoriesChanged={loadExpenses}
-      />
-
-      <Footer />
-    </div>
+    </>
   );
 }
 
