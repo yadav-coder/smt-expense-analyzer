@@ -45,6 +45,18 @@ function formatCategoryList(categorySpending = {}) {
   return entries.length ? entries.join(", ") : "No category spending found for this month.";
 }
 
+function formatCategoryLines(categorySpending = {}) {
+  const entries = Object.entries(categorySpending).sort((a, b) => b[1] - a[1]);
+
+  if (!entries.length) {
+    return "No categories found for this month.";
+  }
+
+  return entries
+    .map(([category, amount], index) => `${index + 1}. ${category}: ${money(amount)}`)
+    .join("\n");
+}
+
 function generateLocalResponse(message, context) {
   const normalized = String(message || "").toLowerCase();
   const totals = context?.totals || {};
@@ -54,6 +66,15 @@ function generateLocalResponse(message, context) {
   const totalThisMonth = totals.currentMonthExpense || 0;
   const currentMonth = context?.currentMonth || "this month";
   const category = findCategory(message, categorySpending, allTimeCategorySpending);
+
+  if (
+    normalized.includes("what category") ||
+    normalized.includes("which category") ||
+    normalized.includes("categories") ||
+    (normalized.includes("category") && normalized.includes("used"))
+  ) {
+    return `Categories used in ${currentMonth}:\n${formatCategoryLines(categorySpending)}`;
+  }
 
   if (category) {
     const monthAmount = categorySpending[category] || 0;
