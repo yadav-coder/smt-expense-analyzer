@@ -23,7 +23,6 @@ import {
   getPrediction,
   loginUser,
   registerUser,
-  sendAiChatMessage,
   setAuthToken,
   updateExpense
 } from "./services/api";

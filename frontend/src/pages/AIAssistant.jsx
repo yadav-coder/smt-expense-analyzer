@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import ChatWindow from "../components/Chatbot/ChatWindow";
 import ChatInput from "../components/Chatbot/ChatInput";
 import SuggestedQuestions from "../components/Chatbot/SuggestedQuestions";
-import { sendChatMessage } from "../services/chatbotApi";
+import { sendAiChatMessage } from "../services/api";
 
 export default function AIAssistant({ budget, prediction }) {
   const [messages, setMessages] = useState([
@@ -31,7 +31,7 @@ export default function AIAssistant({ budget, prediction }) {
     setIsThinking(true);
 
     try {
-      const result = await sendChatMessage({
+      const result = await sendAiChatMessage({
         message: trimmed,
         monthlyBudget: budget,
         predictedNextMonthExpense: prediction
@@ -40,7 +40,7 @@ export default function AIAssistant({ budget, prediction }) {
       const aiMsg = {
         id: `ai-${Date.now()}`,
         role: "assistant",
-        content: result?.response || "I was unable to generate a response. Please try again."
+        content: result?.message || "I was unable to generate a response. Please try again."
       };
       setMessages((prev) => [...prev, aiMsg]);
     } catch (err) {
