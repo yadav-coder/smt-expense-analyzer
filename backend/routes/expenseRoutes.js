@@ -4,6 +4,7 @@ const requireAuth = require("../middleware/authMiddleware");
 
 const {
   addExpense,
+  addExpensesBulk,
   getExpenses,
   deleteExpense,
   updateExpense,
@@ -14,6 +15,7 @@ const {
 // CRUD Routes
 router.use(requireAuth);
 router.post("/", addExpense);
+router.post("/bulk", addExpensesBulk);
 router.get("/", getExpenses);
 router.get("/summary", getExpenseSummary);
 router.delete("/:id", deleteExpense);

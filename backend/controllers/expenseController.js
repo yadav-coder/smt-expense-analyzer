@@ -137,6 +137,36 @@ async function learnCategoryFromTitle(title, category) {
   );
 }
 
+async function buildExpenseFromPayload(body, userId) {
+  const payload = validateExpensePayload(body);
+
+  if (payload.error) {
+    throw new Error(payload.error);
+  }
+
+  let category = payload.category;
+
+  if (!category) {
+    category = await detectCategorySmart(payload.title);
+  }
+
+  if (!category) {
+    category = DEFAULT_CATEGORY;
+  }
+
+  if (category !== DEFAULT_CATEGORY) {
+    await learnCategoryFromTitle(payload.title, category);
+  }
+
+  return new Expense({
+    user: userId,
+    title: payload.title,
+    amount: payload.amount,
+    category,
+    ...(payload.date ? { date: payload.date } : {})
+  });
+}
+
 exports.getExpenses = async (req, res) => {
   try {
     const expenses = await Expense.find(buildExpenseFilter(req.query, req.user.id)).sort({ date: -1 });
@@ -151,40 +181,38 @@ exports.getExpenses = async (req, res) => {
 
 exports.addExpense = async (req, res) => {
   try {
-    const payload = validateExpensePayload(req.body);
-
-    if (payload.error) {
-      return res.status(400).json({ message: payload.error });
-    }
-
-    let category = payload.category;
-
-    if (!category) {
-      category = await detectCategorySmart(payload.title);
-    }
-
-    if (!category) {
-      category = DEFAULT_CATEGORY;
-    }
-
-    if (category !== DEFAULT_CATEGORY) {
-      await learnCategoryFromTitle(payload.title, category);
-    }
-
-    const expense = new Expense({
-      user: req.user.id,
-      title: payload.title,
-      amount: payload.amount,
-      category,
-      ...(payload.date ? { date: payload.date } : {})
-    });
-
+    const expense = await buildExpenseFromPayload(req.body, req.user.id);
     await expense.save();
 
     res.status(201).json(expense);
   } catch (error) {
     res.status(500).json({
       message: error.message
+    });
+  }
+};
+
+exports.addExpensesBulk = async (req, res) => {
+  try {
+    const expenses = Array.isArray(req.body.expenses) ? req.body.expenses : [];
+
+    if (!expenses.length) {
+      return res.status(400).json({ message: "Expenses array is required" });
+    }
+
+    const docs = [];
+    for (const item of expenses) {
+      docs.push(await buildExpenseFromPayload(item, req.user.id));
+    }
+
+    const saved = await Expense.insertMany(docs);
+    res.status(201).json({
+      message: `${saved.length} expenses added`,
+      expenses: saved
+    });
+  } catch (error) {
+    res.status(400).json({
+      message: error.message || "Failed to add receipt expenses"
     });
   }
 };

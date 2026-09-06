@@ -643,6 +643,68 @@ select:focus {
   min-width: 120px;
 }
 
+.receipt-items-panel {
+  margin-bottom: 18px;
+  padding: 16px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface-soft);
+}
+
+.receipt-items-list {
+  display: grid;
+  gap: 8px;
+}
+
+.receipt-items-head,
+.receipt-item-row {
+  display: grid;
+  grid-template-columns: 56px minmax(180px, 1fr) minmax(110px, 0.35fr) minmax(150px, 0.45fr);
+  gap: 10px;
+  align-items: center;
+}
+
+.receipt-items-head {
+  color: var(--muted);
+  font-size: 0.82rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.receipt-item-row {
+  padding: 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+}
+
+.receipt-item-row input[type="checkbox"] {
+  width: 18px;
+  min-height: 18px;
+  justify-self: center;
+}
+
+.ocr-response {
+  margin-top: 12px;
+  color: var(--text);
+}
+
+.ocr-response summary {
+  cursor: pointer;
+  font-weight: 800;
+}
+
+.ocr-response pre {
+  max-height: 220px;
+  overflow: auto;
+  margin: 10px 0 0;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface-soft);
+  white-space: pre-wrap;
+}
+
 .expense-list {
   display: grid;
   gap: 8px;
@@ -1160,8 +1222,18 @@ select:focus {
   .stat-grid,
   .expense-totals,
   .budget-card,
-  .category-legend {
+  .category-legend,
+  .receipt-items-head,
+  .receipt-item-row {
     grid-template-columns: 1fr;
+  }
+
+  .receipt-items-head {
+    display: none;
+  }
+
+  .receipt-item-row input[type="checkbox"] {
+    justify-self: start;
   }
 
   .expense-list-head {

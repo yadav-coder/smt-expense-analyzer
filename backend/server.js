@@ -27,6 +27,8 @@ app.get("/api/health", (req, res) => {
 app.use("/api/auth", require("./routes/authRoutes"));
 app.use("/api/expenses", require("./routes/expenseRoutes"));
 app.use("/api/categories", require("./routes/categoryRoutes"));
+// OCR route for receipt scanning
+app.use("/api/ocr", require("./routes/ocrRoutes"));
 app.use("/api/ai", require("./routes/aiRoutes"));
 
 app.use((req, res) => {

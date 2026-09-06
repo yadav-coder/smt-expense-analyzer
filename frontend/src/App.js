@@ -647,7 +647,7 @@ function ExpensesPage(props) {
   );
 }
 
-function AddExpensePage({ onAddExpense }) {
+function AddExpensePage({ onAddExpense, onExpensesAdded }) {
   return (
     <>
       <PageHeader
@@ -656,7 +656,7 @@ function AddExpensePage({ onAddExpense }) {
         action={<NavLink className="secondary-link" to="/expenses">Back to Expenses</NavLink>}
       />
       <section className="form-panel">
-        <AddExpense onAddExpense={onAddExpense} />
+        <AddExpense onAddExpense={onAddExpense} onExpensesAdded={onExpensesAdded} />
       </section>
     </>
   );
@@ -985,7 +985,15 @@ function App() {
             />
           }
         />
-        <Route path="/add-expense" element={<AddExpensePage onAddExpense={addExpenseHandler} />} />
+        <Route
+          path="/add-expense"
+          element={
+            <AddExpensePage
+              onAddExpense={addExpenseHandler}
+              onExpensesAdded={loadExpenses}
+            />
+          }
+        />
         <Route
           path="/budget"
           element={

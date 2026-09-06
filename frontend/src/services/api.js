@@ -14,6 +14,10 @@ function getBaseUrl() {
 const BASE_URL = getBaseUrl();
 let authToken = null;
 
+export function getApiBaseUrl() {
+  return BASE_URL;
+}
+
 export function setAuthToken(token) {
   authToken = token || null;
 }
@@ -75,6 +79,12 @@ export const addExpense = (expense) =>
   request("/expenses", {
     method: "POST",
     body: JSON.stringify(expense)
+  });
+
+export const addExpensesBulk = (expenses) =>
+  request("/expenses/bulk", {
+    method: "POST",
+    body: JSON.stringify({ expenses })
   });
 
 export const getPrediction = (expenses) =>
